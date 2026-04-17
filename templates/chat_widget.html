@@ -1,8 +1,5 @@
 <!-- ── BIM Team Chat Widget ─────────────────────────────────────────────────── -->
-<!-- Include this at the bottom of base.html, before </body> -->
-
 <style>
-  /* ── Chat toggle button ── */
   #chat-fab {
     position:fixed; bottom:24px; right:24px; z-index:9000;
     width:52px; height:52px; border-radius:50%;
@@ -21,10 +18,9 @@
   }
   #chat-fab .chat-badge.show { display:flex; }
 
-  /* ── Chat panel ── */
   #chat-panel {
     position:fixed; bottom:88px; right:24px; z-index:8999;
-    width:360px; height:520px;
+    width:380px; height:540px;
     background:#161616; border:1px solid rgba(255,255,255,0.1);
     border-radius:14px; display:none; flex-direction:column;
     box-shadow:0 8px 40px rgba(0,0,0,0.7);
@@ -32,7 +28,6 @@
   }
   #chat-panel.open { display:flex; }
 
-  /* Header */
   .chat-header {
     background:#1f1f1f; padding:12px 16px;
     border-bottom:1px solid rgba(255,255,255,0.07);
@@ -50,11 +45,10 @@
   }
   .chat-header .close-btn:hover { color:#fff; }
 
-  /* Channels tabs */
   .chat-channels {
     display:flex; overflow-x:auto; background:#1a1a1a;
     border-bottom:1px solid rgba(255,255,255,0.07);
-    flex-shrink:0; gap:0;
+    flex-shrink:0;
   }
   .chat-channels::-webkit-scrollbar { height:2px; }
   .chat-ch-tab {
@@ -71,15 +65,14 @@
   }
   .chat-ch-tab .ch-badge.show { display:flex; }
 
-  /* Messages area */
   .chat-messages {
-    flex:1; overflow-y:auto; padding:12px;
+    flex:1; overflow-y:scroll; padding:12px;
     display:flex; flex-direction:column; gap:10px;
+    scroll-behavior:smooth;
   }
   .chat-messages::-webkit-scrollbar { width:3px; }
-  .chat-messages::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.1); }
+  .chat-messages::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.15); border-radius:3px; }
 
-  /* Message bubble */
   .chat-msg { display:flex; gap:8px; align-items:flex-start; }
   .chat-msg.own { flex-direction:row-reverse; }
   .chat-avatar {
@@ -88,14 +81,14 @@
     font-size:11px; font-weight:700; color:#000; flex-shrink:0;
   }
   .chat-bubble {
-    max-width:240px; padding:7px 11px; border-radius:10px;
+    max-width:250px; padding:7px 11px; border-radius:10px;
     font-size:12px; line-height:1.5; word-break:break-word;
     background:#272727; color:#e8e8e8;
   }
   .chat-msg.own .chat-bubble { background:rgba(212,160,23,0.2); color:#ffe08a; }
   .chat-msg.system .chat-bubble {
     background:transparent; color:#555; font-size:11px;
-    font-style:italic; border:none; padding:2px 0;
+    font-style:italic; border:none; padding:2px 0; max-width:100%;
   }
   .chat-meta {
     font-size:10px; color:#555; margin-top:3px;
@@ -104,8 +97,10 @@
   .chat-msg.own .chat-meta { justify-content:flex-end; }
   .chat-sender { font-weight:600; color:#aaa; font-size:11px; margin-bottom:2px; }
   .chat-msg.own .chat-sender { display:none; }
+  /* @mention highlight */
+  .chat-mention { color:var(--gold); font-weight:700; }
+  .chat-mention.self { background:rgba(212,160,23,0.15); border-radius:4px; padding:0 2px; }
 
-  /* Online users strip */
   .chat-online {
     padding:6px 12px; background:#1a1a1a;
     border-top:1px solid rgba(255,255,255,0.05);
@@ -116,9 +111,10 @@
     width:24px; height:24px; border-radius:50%;
     display:flex; align-items:center; justify-content:center;
     font-size:10px; font-weight:700; color:#000;
-    position:relative; cursor:default;
-    flex-shrink:0;
+    position:relative; cursor:pointer; flex-shrink:0;
+    transition:transform .15s;
   }
+  .online-dot:hover { transform:scale(1.15); }
   .online-dot::after {
     content:''; width:7px; height:7px; border-radius:50%;
     background:#22c55e; border:1.5px solid #161616;
@@ -127,33 +123,53 @@
   .online-dot.offline::after { background:#555; }
   .online-label { font-size:10px; color:#555; white-space:nowrap; }
 
-  /* Input area */
+  .chat-input-wrap { position:relative; flex:1; }
   .chat-input-area {
     padding:10px 12px; border-top:1px solid rgba(255,255,255,0.07);
-    display:flex; gap:8px; align-items:center; flex-shrink:0;
+    display:flex; gap:8px; align-items:flex-end; flex-shrink:0;
     background:#1a1a1a;
   }
   .chat-input {
-    flex:1; background:#272727; border:1px solid rgba(255,255,255,0.1);
+    width:100%; background:#272727; border:1px solid rgba(255,255,255,0.1);
     color:#e8e8e8; border-radius:20px; padding:7px 14px;
     font-size:12px; outline:none; resize:none;
-    max-height:80px; overflow-y:auto;
+    max-height:80px; overflow-y:auto; display:block;
   }
   .chat-input:focus { border-color:var(--gold); }
   .chat-input::placeholder { color:#555; }
   .chat-send-btn {
     background:var(--gold); color:#000; border:none;
-    width:32px; height:32px; border-radius:50%;
+    width:34px; height:34px; border-radius:50%;
     display:flex; align-items:center; justify-content:center;
     cursor:pointer; font-size:14px; flex-shrink:0;
   }
   .chat-send-btn:hover { background:#c49010; }
   .chat-send-btn:disabled { background:#444; color:#888; cursor:default; }
 
-  /* Typing indicator */
-  .chat-typing { font-size:10px; color:#555; padding:0 12px 4px; min-height:16px; }
+  /* @mention autocomplete dropdown */
+  #mention-popup {
+    position:absolute; bottom:calc(100% + 6px); left:0; right:0;
+    background:#1f1f1f; border:1px solid rgba(255,255,255,0.12);
+    border-radius:10px; overflow:hidden; z-index:9010;
+    display:none; flex-direction:column;
+    box-shadow:0 4px 20px rgba(0,0,0,0.6);
+  }
+  #mention-popup.open { display:flex; }
+  .mention-item {
+    padding:8px 12px; display:flex; align-items:center; gap:8px;
+    cursor:pointer; transition:background .1s; font-size:12px;
+  }
+  .mention-item:hover, .mention-item.selected { background:#2a2a2a; }
+  .mention-avatar {
+    width:22px; height:22px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:10px; font-weight:700; color:#000; flex-shrink:0;
+  }
+  .mention-name { color:#e8e8e8; font-weight:600; }
+  .mention-role { color:#666; font-size:10px; margin-left:auto; }
 
-  /* Notification panel */
+  .chat-typing { font-size:10px; color:#555; padding:0 12px 4px; min-height:14px; flex-shrink:0; }
+
   #notif-panel {
     position:fixed; bottom:88px; right:90px; z-index:8998;
     width:300px; max-height:400px;
@@ -179,7 +195,6 @@
   .notif-item .notif-msg   { font-size:11px; color:#888; margin-top:2px; }
   .notif-item .notif-time  { font-size:10px; color:#555; margin-top:3px; }
 
-  /* Notification bell button */
   #notif-fab {
     position:fixed; bottom:24px; right:86px; z-index:9000;
     width:40px; height:40px; border-radius:50%;
@@ -196,78 +211,66 @@
     display:none; align-items:center; justify-content:center;
   }
   #notif-fab .notif-badge.show { display:flex; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:none} }
 </style>
 
-<!-- Notification Bell -->
 <button id="notif-fab" onclick="toggleNotif()">
   <i class="bi bi-bell"></i>
   <span class="notif-badge" id="notif-badge"></span>
 </button>
 
-<!-- Notification Panel -->
 <div id="notif-panel">
   <div class="notif-header">
     <span>Notifications</span>
-    <button onclick="markNotifsRead()" style="background:none;border:none;color:#888;font-size:11px;cursor:pointer">
-      Mark all read
-    </button>
+    <button onclick="markNotifsRead()" style="background:none;border:none;color:#888;font-size:11px;cursor:pointer">Mark all read</button>
   </div>
   <div class="notif-list" id="notif-list">
     <div style="padding:20px;text-align:center;color:#555;font-size:12px">No notifications</div>
   </div>
 </div>
 
-<!-- Chat FAB -->
 <button id="chat-fab" onclick="toggleChat()">
   <i class="bi bi-chat-dots-fill"></i>
   <span class="chat-badge" id="chat-badge"></span>
 </button>
 
-<!-- Chat Panel -->
 <div id="chat-panel">
   <div class="chat-header">
-    <div>
-      <span class="title"><i class="bi bi-chat-dots me-1"></i>Team Chat</span>
-    </div>
+    <span class="title"><i class="bi bi-chat-dots me-1"></i>Team Chat</span>
     <div class="d-flex align-items-center gap-2">
-      <span class="platform-tag" id="chat-platform-tag">{{ _PLATFORM | upper }}</span>
+      <span class="platform-tag">{{ _PLATFORM | upper }}</span>
       <button class="close-btn" onclick="toggleChat()"><i class="bi bi-x"></i></button>
     </div>
   </div>
 
-  <!-- Channel tabs -->
   <div class="chat-channels" id="chat-channels">
     {% for ch in _CHANNELS %}
     <div class="chat-ch-tab {% if loop.first %}active{% endif %}"
-         data-channel="{{ ch.id }}"
-         onclick="switchChannel('{{ ch.id }}')">
+         data-channel="{{ ch.id }}" onclick="switchChannel('{{ ch.id }}')">
       <i class="bi {{ ch.icon }}"></i> #{{ ch.name }}
       <span class="ch-badge" id="badge-{{ ch.id }}"></span>
     </div>
     {% endfor %}
   </div>
 
-  <!-- Online users -->
   <div class="chat-online" id="online-users">
     <span class="online-label">Online:</span>
   </div>
 
-  <!-- Messages -->
   <div class="chat-messages" id="chat-messages">
-    <div style="text-align:center;color:#555;font-size:12px;padding:20px">
-      Loading messages...
-    </div>
+    <div style="text-align:center;color:#555;font-size:12px;padding:20px">Loading messages...</div>
   </div>
 
-  <!-- Typing -->
   <div class="chat-typing" id="chat-typing"></div>
 
-  <!-- Input -->
   <div class="chat-input-area">
-    <textarea class="chat-input" id="chat-input" rows="1"
-              placeholder="Message #general..."
-              onkeydown="handleKey(event)"
-              oninput="autoResize(this)"></textarea>
+    <div class="chat-input-wrap">
+      <div id="mention-popup"></div>
+      <textarea class="chat-input" id="chat-input" rows="1"
+                placeholder="Message #general… use @ to mention"
+                onkeydown="handleKey(event)"
+                oninput="onInputChange(this)"></textarea>
+    </div>
     <button class="chat-send-btn" id="send-btn" onclick="sendMessage()">
       <i class="bi bi-send-fill"></i>
     </button>
@@ -275,26 +278,34 @@
 </div>
 
 <script>
-const CURRENT_USER_ID   = {{ _current_user.id if _current_user else 0 }};
-const CURRENT_USERNAME  = "{{ _current_user.username if _current_user else '' }}";
-const CURRENT_DISPLAY   = "{{ _current_user.display_name if _current_user else '' }}";
-const CURRENT_COLOR     = "{{ _current_user.avatar_color if _current_user else '#888' }}";
-const PLATFORM          = "{{ _PLATFORM }}";
+const CURRENT_USER_ID  = {{ _current_user.id if _current_user else 0 }};
+const CURRENT_USERNAME = "{{ _current_user.username if _current_user else '' }}";
+const CURRENT_DISPLAY  = "{{ _current_user.display_name if _current_user else '' }}";
+const CURRENT_COLOR    = "{{ _current_user.avatar_color if _current_user else '#888' }}";
+const PLATFORM         = "{{ _PLATFORM }}";
 
-let currentChannel  = "general";
-let lastMessageIds  = {};  // channel -> last id seen
-let chatOpen        = false;
-let pollInterval    = null;
-let unreadCounts    = {};
+let currentChannel = "general";
+let lastMessageIds = {};
+let chatOpen       = false;
+let unreadCounts   = {};
 
-// ── Toggle ─────────────────────────────────────────────────────────────────
+// Team members cache for @mention
+let teamMembers = [];
+let mentionQuery = "";
+let mentionStart = -1;
+let selectedMention = 0;
+
+// ── Load team members ──────────────────────────────────────────────────────
+fetch("/chat/online").then(r => r.json()).then(d => { teamMembers = d.users || []; });
+
+// ── Toggle panels ──────────────────────────────────────────────────────────
 function toggleChat() {
   chatOpen = !chatOpen;
   document.getElementById("chat-panel").classList.toggle("open", chatOpen);
   document.getElementById("notif-panel").classList.remove("open");
   if (chatOpen) {
     loadMessages(currentChannel);
-    document.getElementById("chat-input").focus();
+    setTimeout(() => document.getElementById("chat-input").focus(), 100);
     clearBadge();
   }
 }
@@ -307,16 +318,15 @@ function toggleNotif() {
   if (p.classList.contains("open")) loadNotifications();
 }
 
-// ── Switch channel ─────────────────────────────────────────────────────────
+// ── Channel switch ─────────────────────────────────────────────────────────
 function switchChannel(ch) {
   currentChannel = ch;
-  document.querySelectorAll(".chat-ch-tab").forEach(t => {
-    t.classList.toggle("active", t.dataset.channel === ch);
-  });
+  document.querySelectorAll(".chat-ch-tab").forEach(t =>
+    t.classList.toggle("active", t.dataset.channel === ch));
   const badge = document.getElementById("badge-" + ch);
   if (badge) { badge.textContent = ""; badge.classList.remove("show"); }
   unreadCounts[ch] = 0;
-  document.getElementById("chat-input").placeholder = `Message #${ch}...`;
+  document.getElementById("chat-input").placeholder = `Message #${ch}… use @ to mention`;
   loadMessages(ch);
 }
 
@@ -332,9 +342,8 @@ function loadMessages(channel) {
         return;
       }
       data.messages.forEach(m => appendMessage(m, false));
-      if (data.messages.length)
-        lastMessageIds[channel] = data.messages[data.messages.length - 1].id;
-      scrollBottom();
+      lastMessageIds[channel] = data.messages[data.messages.length - 1].id;
+      forceScrollBottom();
     })
     .catch(() => {
       box.innerHTML = '<div style="text-align:center;color:#555;font-size:12px;padding:20px">Could not load messages.</div>';
@@ -342,40 +351,52 @@ function loadMessages(channel) {
 }
 
 // ── Append one message ─────────────────────────────────────────────────────
-function appendMessage(m, animate = true) {
+function appendMessage(m, animate) {
   const box   = document.getElementById("chat-messages");
   const isOwn = m.user_id == CURRENT_USER_ID;
   const isSys = m.user_id == 0 || m.username === "system";
 
-  const wrap  = document.createElement("div");
-  wrap.className = "chat-msg" + (isOwn ? " own" : "") + (isSys ? " system" : "");
+  const wrap = document.createElement("div");
+  wrap.className = "chat-msg" + (isOwn?" own":"") + (isSys?" system":"");
   if (animate) wrap.style.animation = "fadeIn .2s ease";
 
-  const time  = m.created_at ? new Date(m.created_at + "Z").toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}) : "";
-  const color = m.avatar_color || "#888";
-  const initials = (m.display_name || m.username || "?").substring(0,1).toUpperCase();
+  const time    = m.created_at ? new Date(m.created_at+"Z").toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}) : "";
+  const color   = m.avatar_color || "#888";
+  const initial = (m.display_name||m.username||"?")[0].toUpperCase();
+  const msgHtml = renderMessage(m.message);
 
   if (isSys) {
-    wrap.innerHTML = `<div class="chat-bubble" style="margin:0 auto;max-width:100%">${escHtml(m.message)}</div>`;
+    wrap.innerHTML = `<div class="chat-bubble" style="margin:0 auto;max-width:100%">${msgHtml}</div>`;
   } else {
     wrap.innerHTML = `
-      ${!isOwn ? `<div class="chat-avatar" style="background:${color}">${initials}</div>` : ""}
+      ${!isOwn?`<div class="chat-avatar" style="background:${color}">${initial}</div>`:""}
       <div>
-        ${!isOwn ? `<div class="chat-sender">${escHtml(m.display_name || m.username)}</div>` : ""}
-        <div class="chat-bubble">${escHtml(m.message)}</div>
+        ${!isOwn?`<div class="chat-sender">${escHtml(m.display_name||m.username)}</div>`:""}
+        <div class="chat-bubble">${msgHtml}</div>
         <div class="chat-meta">
           <span>${time}</span>
-          ${m.platform && m.platform !== PLATFORM ? `<span style="color:#444">via ${m.platform}</span>` : ""}
+          ${m.platform&&m.platform!==PLATFORM?`<span style="color:#444">via ${m.platform}</span>`:""}
         </div>
       </div>
-      ${isOwn ? `<div class="chat-avatar" style="background:${color}">${initials}</div>` : ""}
+      ${isOwn?`<div class="chat-avatar" style="background:${color}">${initial}</div>`:""}
     `;
   }
   box.appendChild(wrap);
 }
 
+// Render message text — highlight @mentions, escape HTML
+function renderMessage(text) {
+  const escaped = escHtml(text);
+  return escaped.replace(/@(\w+)/g, (match, uname) => {
+    const isSelf = uname.toLowerCase() === CURRENT_USERNAME.toLowerCase();
+    return `<span class="chat-mention${isSelf?" self":""}">${match}</span>`;
+  });
+}
+
 function escHtml(t) {
-  return String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\n/g,"<br>");
+  return String(t)
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+    .replace(/\n/g,"<br>");
 }
 
 // ── Send message ───────────────────────────────────────────────────────────
@@ -385,27 +406,32 @@ function sendMessage() {
   if (!msg) return;
   input.value = "";
   autoResize(input);
+  closeMentionPopup();
 
   fetch("/chat/send", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({channel: currentChannel, message: msg, platform: PLATFORM})
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({channel:currentChannel, message:msg, platform:PLATFORM})
   })
   .then(r => r.json())
   .then(data => {
     if (data.ok) {
       appendMessage(data.message, true);
       lastMessageIds[currentChannel] = data.message.id;
-      scrollBottom();
+      forceScrollBottom();
     }
   });
 }
 
 function handleKey(e) {
-  if (e.key === "Enter" && !e.shiftKey) {
-    e.preventDefault();
-    sendMessage();
+  if (document.getElementById("mention-popup").classList.contains("open")) {
+    const items = document.querySelectorAll(".mention-item");
+    if (e.key === "ArrowDown") { e.preventDefault(); selectedMention = Math.min(selectedMention+1, items.length-1); highlightMention(); return; }
+    if (e.key === "ArrowUp")   { e.preventDefault(); selectedMention = Math.max(selectedMention-1, 0); highlightMention(); return; }
+    if (e.key === "Enter" || e.key === "Tab") { e.preventDefault(); items[selectedMention]?.click(); return; }
+    if (e.key === "Escape") { closeMentionPopup(); return; }
   }
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
 }
 
 function autoResize(el) {
@@ -413,7 +439,90 @@ function autoResize(el) {
   el.style.height = Math.min(el.scrollHeight, 80) + "px";
 }
 
-// ── Poll for new messages ──────────────────────────────────────────────────
+// ── @mention autocomplete ──────────────────────────────────────────────────
+function onInputChange(el) {
+  autoResize(el);
+  const val = el.value;
+  const cursor = el.selectionStart;
+
+  // Find the @ before cursor
+  let atPos = -1;
+  for (let i = cursor - 1; i >= 0; i--) {
+    if (val[i] === "@") { atPos = i; break; }
+    if (/\s/.test(val[i])) break;
+  }
+
+  if (atPos === -1) { closeMentionPopup(); return; }
+
+  mentionQuery = val.substring(atPos + 1, cursor).toLowerCase();
+  mentionStart = atPos;
+
+  const matches = teamMembers.filter(u =>
+    u.username.toLowerCase().includes(mentionQuery) ||
+    u.display_name.toLowerCase().includes(mentionQuery)
+  );
+
+  if (!matches.length) { closeMentionPopup(); return; }
+
+  selectedMention = 0;
+  const popup = document.getElementById("mention-popup");
+  popup.innerHTML = matches.map((u, i) => `
+    <div class="mention-item${i===0?" selected":""}" data-username="${u.username}" onclick="insertMention('${u.username}')">
+      <div class="mention-avatar" style="background:${u.avatar_color||'#888'}">${u.display_name[0].toUpperCase()}</div>
+      <span class="mention-name">@${u.username}</span>
+      <span>${u.display_name}</span>
+      <span class="mention-role">${u.role||''}</span>
+    </div>
+  `).join("");
+  popup.classList.add("open");
+}
+
+function insertMention(username) {
+  const input = document.getElementById("chat-input");
+  const val   = input.value;
+  const cursor = input.selectionStart;
+  const before = val.substring(0, mentionStart);
+  const after  = val.substring(cursor);
+  input.value  = before + "@" + username + " " + after;
+  input.focus();
+  const newPos = before.length + username.length + 2;
+  input.setSelectionRange(newPos, newPos);
+  closeMentionPopup();
+  autoResize(input);
+}
+
+function closeMentionPopup() {
+  document.getElementById("mention-popup").classList.remove("open");
+  mentionStart = -1;
+}
+
+function highlightMention() {
+  document.querySelectorAll(".mention-item").forEach((el, i) =>
+    el.classList.toggle("selected", i === selectedMention));
+}
+
+// ── Online dot click — insert @mention ────────────────────────────────────
+function mentionUser(username) {
+  const input = document.getElementById("chat-input");
+  input.value += `@${username} `;
+  input.focus();
+  if (!chatOpen) { chatOpen = true; document.getElementById("chat-panel").classList.add("open"); }
+}
+
+// ── Scroll helpers ─────────────────────────────────────────────────────────
+function forceScrollBottom() {
+  const box = document.getElementById("chat-messages");
+  // Double rAF ensures DOM paint is done before scrolling
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    box.scrollTop = box.scrollHeight + 9999;
+  }));
+}
+function isAtBottom() {
+  const box = document.getElementById("chat-messages");
+  return box.scrollHeight - box.scrollTop - box.clientHeight < 80;
+}
+
+// ── Poll messages ──────────────────────────────────────────────────────────
 function pollMessages() {
   const since = lastMessageIds[currentChannel] || 0;
   fetch(`/chat/messages?channel=${currentChannel}&since=${since}&limit=20`)
@@ -425,83 +534,70 @@ function pollMessages() {
         if (m.id > (lastMessageIds[currentChannel] || 0)) {
           appendMessage(m, true);
           lastMessageIds[currentChannel] = m.id;
-          // Show badge if chat closed or different channel
           if (!chatOpen || currentChannel !== m.channel) {
-            unreadCounts[m.channel] = (unreadCounts[m.channel] || 0) + 1;
+            unreadCounts[m.channel] = (unreadCounts[m.channel]||0)+1;
             updateBadges();
           }
         }
       });
-      if (atBottom) scrollBottom();
+      if (atBottom) forceScrollBottom();
     });
-
-  // Also poll all other channels for badge counts
   pollAllChannelBadges();
 }
 
 function pollAllChannelBadges() {
-  fetch(`/chat/unread`)
-    .then(r => r.json())
-    .then(data => {
-      let total = 0;
-      Object.entries(data.channels || {}).forEach(([ch, count]) => {
-        if (ch !== currentChannel || !chatOpen) {
-          total += count;
-          const badge = document.getElementById("badge-" + ch);
-          if (badge) {
-            badge.textContent = count > 0 ? (count > 9 ? "9+" : count) : "";
-            badge.classList.toggle("show", count > 0);
-          }
-        }
-      });
-      const fab = document.getElementById("chat-badge");
-      fab.textContent = total > 0 ? (total > 9 ? "9+" : total) : "";
-      fab.classList.toggle("show", total > 0);
+  fetch("/chat/unread").then(r => r.json()).then(data => {
+    let total = 0;
+    Object.entries(data.channels||{}).forEach(([ch, count]) => {
+      if (ch !== currentChannel || !chatOpen) {
+        total += count;
+        const badge = document.getElementById("badge-"+ch);
+        if (badge) { badge.textContent = count>9?"9+":count||""; badge.classList.toggle("show", count>0); }
+      }
     });
+    const fab = document.getElementById("chat-badge");
+    fab.textContent = total>9?"9+":total||"";
+    fab.classList.toggle("show", total>0);
+  });
 }
 
 function updateBadges() {
   let total = 0;
   Object.entries(unreadCounts).forEach(([ch, n]) => {
     total += n;
-    const badge = document.getElementById("badge-" + ch);
-    if (badge) {
-      badge.textContent = n > 9 ? "9+" : n || "";
-      badge.classList.toggle("show", n > 0);
-    }
+    const badge = document.getElementById("badge-"+ch);
+    if (badge) { badge.textContent = n>9?"9+":n||""; badge.classList.toggle("show", n>0); }
   });
   const fab = document.getElementById("chat-badge");
-  fab.textContent = total > 9 ? "9+" : total || "";
-  fab.classList.toggle("show", total > 0);
+  fab.textContent = total>9?"9+":total||"";
+  fab.classList.toggle("show", total>0);
 }
 
 function clearBadge() {
   unreadCounts[currentChannel] = 0;
-  const badge = document.getElementById("badge-" + currentChannel);
-  if (badge) { badge.textContent = ""; badge.classList.remove("show"); }
+  const badge = document.getElementById("badge-"+currentChannel);
+  if (badge) { badge.textContent=""; badge.classList.remove("show"); }
   updateBadges();
 }
 
 // ── Notifications ──────────────────────────────────────────────────────────
 function loadNotifications() {
-  fetch("/notifications/list")
-    .then(r => r.json())
-    .then(data => {
-      const list = document.getElementById("notif-list");
-      if (!data.notifications || !data.notifications.length) {
-        list.innerHTML = '<div style="padding:20px;text-align:center;color:#555;font-size:12px">No notifications</div>';
-        return;
-      }
-      list.innerHTML = data.notifications.map(n => `
-        <div class="notif-item ${n.read ? '' : 'unread'}" onclick="goNotif('${n.link}')">
-          <div class="notif-title">${escHtml(n.title)}</div>
-          <div class="notif-msg">${escHtml(n.message)}</div>
-          <div class="notif-time">${n.created_at ? n.created_at.substring(0,16) : ''}</div>
-        </div>
-      `).join("");
-      document.getElementById("notif-badge").textContent = "";
-      document.getElementById("notif-badge").classList.remove("show");
-    });
+  fetch("/notifications/list").then(r => r.json()).then(data => {
+    const list = document.getElementById("notif-list");
+    if (!data.notifications?.length) {
+      list.innerHTML = '<div style="padding:20px;text-align:center;color:#555;font-size:12px">No notifications</div>';
+      return;
+    }
+    list.innerHTML = data.notifications.map(n => `
+      <div class="notif-item ${n.read?'':'unread'}" onclick="goNotif('${n.link||''}')">
+        <div class="notif-title">${escHtml(n.title)}</div>
+        <div class="notif-msg">${escHtml(n.message)}</div>
+        <div class="notif-time">${(n.created_at||'').substring(0,16)}</div>
+      </div>
+    `).join("");
+    document.getElementById("notif-badge").textContent = "";
+    document.getElementById("notif-badge").classList.remove("show");
+  });
 }
 
 function goNotif(link) {
@@ -510,51 +606,37 @@ function goNotif(link) {
 }
 
 function markNotifsRead() {
-  fetch("/notifications/read", {method:"POST"})
-    .then(() => loadNotifications());
+  fetch("/notifications/read",{method:"POST"}).then(() => loadNotifications());
 }
 
 function pollNotifications() {
-  fetch("/notifications/unread")
-    .then(r => r.json())
-    .then(data => {
-      const count = data.count || 0;
-      const badge = document.getElementById("notif-badge");
-      badge.textContent = count > 9 ? "9+" : count || "";
-      badge.classList.toggle("show", count > 0);
-    });
+  fetch("/notifications/unread").then(r => r.json()).then(data => {
+    const count = data.count||0;
+    const badge = document.getElementById("notif-badge");
+    badge.textContent = count>9?"9+":count||"";
+    badge.classList.toggle("show", count>0);
+  });
 }
 
 // ── Online users ───────────────────────────────────────────────────────────
 function pollOnlineUsers() {
-  fetch("/chat/online")
-    .then(r => r.json())
-    .then(data => {
-      const strip = document.getElementById("online-users");
-      const users = data.users || [];
-      strip.innerHTML = `<span class="online-label">Online:</span>` +
-        users.map(u => `
-          <div class="online-dot ${u.online ? '' : 'offline'}"
-               style="background:${u.avatar_color || '#888'}"
-               title="${u.display_name} (${u.online ? 'online' : 'away'})">
-            ${(u.display_name||'?')[0].toUpperCase()}
-          </div>
-        `).join("") +
-        (users.length === 0 ? '<span style="color:#555;font-size:11px">No one online</span>' : "");
-    });
+  fetch("/chat/online").then(r => r.json()).then(data => {
+    teamMembers = data.users || [];
+    const strip = document.getElementById("online-users");
+    strip.innerHTML = `<span class="online-label">Online:</span>` +
+      teamMembers.map(u => `
+        <div class="online-dot ${u.online?'':'offline'}"
+             style="background:${u.avatar_color||'#888'}"
+             title="Click to @mention ${u.display_name}"
+             onclick="mentionUser('${u.username}')">
+          ${u.display_name[0].toUpperCase()}
+        </div>
+      `).join("") +
+      (teamMembers.length===0?'<span style="color:#555;font-size:11px">No one online</span>':"");
+  });
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────
-function scrollBottom() {
-  const box = document.getElementById("chat-messages");
-  box.scrollTop = box.scrollHeight;
-}
-function isAtBottom() {
-  const box = document.getElementById("chat-messages");
-  return box.scrollHeight - box.scrollTop - box.clientHeight < 60;
-}
-
-// ── Start polling ──────────────────────────────────────────────────────────
+// ── Boot ───────────────────────────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", () => {
   if (!CURRENT_USER_ID) return;
   pollAllChannelBadges();
@@ -565,6 +647,3 @@ document.addEventListener("DOMContentLoaded", () => {
   setInterval(pollOnlineUsers,    30000);
 });
 </script>
-<style>
-@keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:none} }
-</style>
