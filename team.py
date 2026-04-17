@@ -15,11 +15,14 @@ ROLES = {
     "viewer" : {"label": "Viewer",  "color": "#888",    "level": 1},
 }
 
+_ALL_PERMS = ["view", "create", "edit", "delete", "approve", "reject",
+              "sync", "search", "mail"]
+
 ROLE_PERMISSIONS = {
-    "admin"  : ["view", "create", "edit", "delete", "approve", "reject",
-                "sync", "search", "mail", "manage_team", "manage_settings"],
-    "manager": ["view", "create", "edit", "approve", "reject",
-                "sync", "search", "mail"],
+    # Kishan only — full access + team/settings management
+    "admin"  : _ALL_PERMS + ["manage_team", "manage_settings"],
+    # All partners — full access to everything except team/settings mgmt
+    "manager": _ALL_PERMS,
     "viewer" : ["view"],
 }
 
@@ -115,8 +118,8 @@ def _seed_users(c, pg):
     users = [
         ("kishan",   "Kishan Batavia", "Bim@2025",  "admin",   "#D4A017"),
         ("hirakraj", "Hirakraj",       "Bim@2025",  "manager", "#64b5f6"),
-        ("tirth",    "Tirth",          "Bim@2025",  "viewer",  "#81c784"),
-        ("jenish",   "Jenish",         "Bim@2025",  "viewer",  "#ce93d8"),
+        ("tirth",    "Tirth",          "Bim@2025",  "manager", "#81c784"),
+        ("jenish",   "Jenish",         "Bim@2025",  "manager", "#ce93d8"),
     ]
     for uname, display, password, role, color in users:
         ph = _hash_password(password)
