@@ -1,5 +1,6 @@
 flask>=3.0
 flask-login>=0.6
+werkzeug>=3.0
 requests>=2.32
 beautifulsoup4>=4.12
 python-dotenv>=1.0
@@ -8,3 +9,4 @@ googlesearch-python>=1.2
 lxml>=5.0
 gunicorn>=21.2
 psycopg2-binary>=2.9
+openpyxl>=3.1
