@@ -13,7 +13,7 @@ log = logging.getLogger(__name__)
 
 _AUTH_BASE  = "https://www.linkedin.com/oauth/v2"
 _API_BASE   = "https://api.linkedin.com/v2"
-_REDIRECT   = "http://localhost:5001/linkedin/callback"
+_REDIRECT   = os.getenv("LINKEDIN_REDIRECT_URI", "https://bim-leadgen.onrender.com/linkedin/callback")
 
 # In-memory token cache (also persisted to DB via app.py)
 _token_cache = {"access_token": None, "expires_at": 0}
