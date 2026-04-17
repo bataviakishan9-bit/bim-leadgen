@@ -15,6 +15,8 @@ from dotenv import load_dotenv
 
 import database as db
 from scorer import score_lead, score_tier
+import team as tm
+from chat_routes import register_chat_routes
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO,
@@ -23,6 +25,28 @@ log = logging.getLogger(__name__)
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "bim-leadgen-2025")
+
+# ── Team / Chat integration ────────────────────────────────────────────────────
+try:
+    tm.init_team_tables()
+except Exception as _te:
+    log.warning("Team tables init: %s", _te)
+
+register_chat_routes(app, platform="leadgen")
+
+@app.context_processor
+def inject_team():
+    uid  = session.get("team_user_id")
+    user = tm.get_user_by_id(uid) if uid else None
+    role = session.get("team_role", "viewer")
+    return dict(
+        _current_user = user,
+        _team_role    = role,
+        _can          = lambda action: tm.can(role, action),
+        _PLATFORM     = "leadgen",
+        _CHANNELS     = tm.CHANNELS,
+        _ROLES        = tm.ROLES,
+    )
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
 
@@ -51,6 +75,15 @@ def login():
     if request.method == "POST":
         username = request.form.get("username","").strip().lower()
         password = request.form.get("password","")
+        # Try team DB first (shared auth)
+        team_user = tm.authenticate(username, password)
+        if team_user:
+            login_user(LGUser(), remember=True)
+            session["team_user_id"] = team_user["id"]
+            session["team_role"]    = team_user["role"]
+            # Role check — viewers can still view LeadGen
+            return redirect(url_for("dashboard"))
+        # Fallback to env-based admin
         if username == ADMIN_USER.lower() and check_password_hash(ADMIN_HASH, password):
             login_user(LGUser(), remember=True)
             return redirect(url_for("dashboard"))
@@ -59,6 +92,8 @@ def login():
 
 @app.route("/logout")
 def logout():
+    session.pop("team_user_id", None)
+    session.pop("team_role", None)
     logout_user()
     return redirect(url_for("login"))
 
@@ -211,6 +246,21 @@ def lead_detail(lead_id):
         if action == "approve":
             db.update_lead(lead_id, {"status": "Approved"})
             flash("Lead approved.", "success")
+            # Auto-sync to CRM
+            _auto_sync_lead(lead_id, lead)
+            # Notify team
+            try:
+                tu = tm.get_user_by_id(session.get("team_user_id",0))
+                actor = tu["display_name"] if tu else "Someone"
+                tm.post_system_message("leads",
+                    f"✅ {actor} approved lead: {lead.get('company') or lead.get('name','?')} (Score: {lead.get('score',0)})",
+                    "leadgen")
+                tm.notify_all("Lead Approved",
+                    f"{lead.get('company') or lead.get('name','?')} approved by {actor}",
+                    type="lead", link=f"/leads/{lead_id}",
+                    exclude_user=session.get("team_user_id"))
+            except Exception:
+                pass
         elif action == "reject":
             db.update_lead(lead_id, {"status": "Rejected"})
             flash("Lead rejected.", "info")
@@ -268,6 +318,24 @@ def _enrich_lead(lead_id: int, lead: dict):
             flash("Hunter.io could not find an email for this lead.", "warning")
     else:
         flash("Need first name, last name, and website to use email finder.", "warning")
+
+
+def _auto_sync_lead(lead_id: int, lead: dict):
+    """Silently auto-sync to CRM when a lead is approved."""
+    crm_url = db.get_config("CRM_URL") or os.getenv("CRM_URL","https://bim-crm.onrender.com")
+    secret  = os.getenv("SYNC_SECRET","bim-sync-2025")
+    try:
+        import requests as _req
+        r = _req.post(f"{crm_url}/api/import-leads",
+                      json={"leads": [_build_crm_lead(lead)], "secret": secret},
+                      headers={"Content-Type":"application/json",
+                               "X-Sync-Secret": secret},
+                      timeout=10)
+        if r.status_code == 200:
+            db.update_lead(lead_id, {"synced_at": datetime.utcnow().isoformat()})
+            log.info("Auto-synced lead %d to CRM", lead_id)
+    except Exception as e:
+        log.warning("Auto-sync lead %d failed: %s", lead_id, e)
 
 
 def _sync_single_lead(lead_id: int, lead: dict):
@@ -416,6 +484,59 @@ def _build_crm_lead(l: dict) -> dict:
             f"LeadGen score: {score}/100"
         ),
     }
+
+
+# ── Team Management ───────────────────────────────────────────────────────────
+
+@app.route("/team")
+@login_required
+def team_page():
+    if session.get("team_role") != "admin":
+        flash("Admin access required.", "danger")
+        return redirect(url_for("dashboard"))
+    users = tm.get_all_users()
+    return render_template("team.html", users=users, roles=tm.ROLES,
+                           current_role=session.get("team_role","viewer"))
+
+@app.route("/team/create", methods=["POST"])
+@login_required
+def team_create_user():
+    if session.get("team_role") != "admin":
+        return jsonify({"error": "forbidden"}), 403
+    data = request.get_json() or {}
+    try:
+        new_id = tm.create_user(
+            data.get("username","").strip().lower(),
+            data.get("display_name","").strip(),
+            data.get("password","").strip(),
+            data.get("role","viewer"),
+            data.get("email","").strip(),
+            data.get("avatar_color","#888"),
+        )
+        tm.post_system_message("general",
+            f"👋 {data.get('display_name','')} joined as {data.get('role','viewer')}.", "leadgen")
+        return jsonify({"ok": True, "id": new_id})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+@app.route("/team/update/<int:user_id>", methods=["POST"])
+@login_required
+def team_update_user(user_id):
+    if session.get("team_role") != "admin":
+        return jsonify({"error": "forbidden"}), 403
+    data    = request.get_json() or {}
+    allowed = ["display_name","role","email","avatar_color","is_active"]
+    fields  = {k: v for k, v in data.items() if k in allowed}
+    if "password" in data and data["password"]:
+        fields["password"] = data["password"]
+    if fields:
+        tm.update_user(user_id, fields)
+    return jsonify({"ok": True})
+
+@app.route("/team/users.json")
+@login_required
+def team_users_json():
+    return jsonify({"users": tm.get_all_users()})
 
 
 # ── LinkedIn OAuth ────────────────────────────────────────────────────────────

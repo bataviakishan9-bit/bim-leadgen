@@ -220,6 +220,26 @@
          class="nav-link {% if request.endpoint=='settings_page' %}active{% endif %}">
         <i class="bi bi-gear"></i> Settings
       </a>
+      {% if _team_role == 'admin' %}
+      <a href="{{ url_for('team_page') }}"
+         class="nav-link {% if request.endpoint=='team_page' %}active{% endif %}">
+        <i class="bi bi-people-fill"></i> Team
+      </a>
+      {% endif %}
+      <a href="https://bim-crm.onrender.com" target="_blank" class="nav-link" style="color:rgba(212,160,23,0.7);">
+        <i class="bi bi-people"></i> CRM ↗
+      </a>
+      <hr>
+      {% if _current_user %}
+      <div style="padding:10px 15px 6px;font-size:11px;color:rgba(255,255,255,0.45);">
+        {{ _current_user.display_name }}
+        <span style="font-size:10px;padding:1px 6px;border-radius:8px;margin-left:4px;
+          background:{% if _team_role=='admin' %}rgba(212,160,23,0.2){% elif _team_role=='manager' %}rgba(100,181,246,0.2){% else %}rgba(136,136,136,0.2){% endif %};
+          color:{% if _team_role=='admin' %}#D4A017{% elif _team_role=='manager' %}#64b5f6{% else %}#888{% endif %}">
+          {{ _team_role }}
+        </span>
+      </div>
+      {% endif %}
       <a href="{{ url_for('logout') }}" class="nav-link" style="color:rgba(255,100,100,0.8);">
         <i class="bi bi-box-arrow-left"></i> Logout
       </a>
@@ -234,8 +254,15 @@
   <div class="top-bar">
     <span class="page-title">{% block page_title %}BIM Lead Generator{% endblock %}</span>
     <div class="user-pill">
-      <div class="avatar">K</div>
-      <span>Kishan</span>
+      {% if _current_user %}
+        <div class="avatar" style="background:{{ _current_user.avatar_color }}">
+          {{ _current_user.display_name[0].upper() }}
+        </div>
+        <span>{{ _current_user.display_name }}</span>
+      {% else %}
+        <div class="avatar">A</div>
+        <span>Admin</span>
+      {% endif %}
     </div>
   </div>
 
@@ -254,5 +281,8 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 {% block scripts %}{% endblock %}
+{% if current_user.is_authenticated %}
+  {% include "chat_widget.html" %}
+{% endif %}
 </body>
 </html>
