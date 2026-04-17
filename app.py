@@ -656,8 +656,12 @@ log.info("APScheduler started")
 
 # ── Init ──────────────────────────────────────────────────────────────────────
 
-db.init_db()
-log.info("Database initialised")
+try:
+    db.init_db()
+    log.info("Database initialised")
+except Exception as _db_err:
+    log.error("Database init failed: %s", _db_err, exc_info=True)
+    log.warning("App starting without DB — some features will be unavailable")
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────
