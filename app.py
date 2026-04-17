@@ -326,7 +326,7 @@ def _auto_sync_lead(lead_id: int, lead: dict):
     secret  = os.getenv("SYNC_SECRET","bim-sync-2025")
     try:
         import requests as _req
-        r = _req.post(f"{crm_url}/api/import-leads",
+        r = _req.post(f"{crm_url}/api/sync-leads",
                       json={"leads": [_build_crm_lead(lead)], "secret": secret},
                       headers={"Content-Type":"application/json",
                                "X-Sync-Secret": secret},
@@ -344,7 +344,7 @@ def _sync_single_lead(lead_id: int, lead: dict):
     crm_url = db.get_config("CRM_URL") or os.getenv("CRM_URL","http://localhost:5000")
     try:
         payload = [_build_crm_lead(lead)]
-        r = _req.post(f"{crm_url}/api/import-leads",
+        r = _req.post(f"{crm_url}/api/sync-leads",
                       json={"leads": payload},
                       headers={"Content-Type":"application/json"},
                       timeout=15)
@@ -441,7 +441,7 @@ def run_sync():
 
     payload = [_build_crm_lead(l) for l in to_sync]
     try:
-        r = _req.post(f"{crm_url}/api/import-leads",
+        r = _req.post(f"{crm_url}/api/sync-leads",
                       json={"leads": payload},
                       headers={"Content-Type":"application/json"},
                       timeout=30)
