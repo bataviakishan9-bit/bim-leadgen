@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %}Settings — BIM LeadGen{% endblock %}
+{% block page_title %}Settings{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><h4>Settings</h4><small>API keys and platform configuration</small></div>
+</div>
+
+<div class="row g-3">
+  <div class="col-md-7">
+    <div class="card">
+      <div class="card-header px-4 py-3"><span style="font-weight:600">API Keys</span></div>
+      <div class="card-body px-4 py-4">
+        <form method="POST">
+          <div class="mb-4">
+            <label class="form-label" style="font-size:12px;color:var(--muted)">HUNTER.IO API KEY</label>
+            <input type="text" name="HUNTER_API_KEY" class="form-control"
+                   placeholder="Paste your Hunter.io API key"
+                   value="{{ config.get('HUNTER_API_KEY','') }}">
+            <div class="form-text" style="font-size:11px;color:var(--muted)">
+              Free: 25 searches/month · Paid: unlimited —
+              <a href="https://hunter.io/api-keys" target="_blank" style="color:var(--accent)">Get key</a>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" style="font-size:12px;color:var(--muted)">LINKEDIN CLIENT ID</label>
+            <input type="text" name="LINKEDIN_CLIENT_ID" class="form-control"
+                   placeholder="e.g. 773o0g8qr7mdrv"
+                   value="{{ config.get('LINKEDIN_CLIENT_ID','') }}">
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label" style="font-size:12px;color:var(--muted)">LINKEDIN CLIENT SECRET</label>
+            <input type="password" name="LINKEDIN_CLIENT_SECRET" class="form-control"
+                   placeholder="LinkedIn app primary client secret"
+                   value="{{ config.get('LINKEDIN_CLIENT_SECRET','') }}">
+            <div class="form-text" style="font-size:11px;color:var(--muted)">
+              From your LinkedIn Developer App →
+              <a href="https://www.linkedin.com/developers/apps" target="_blank" style="color:var(--accent)">developers/apps</a>
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label" style="font-size:12px;color:var(--muted)">CRM APP URL</label>
+            <input type="text" name="CRM_URL" class="form-control"
+                   placeholder="http://localhost:5000"
+                   value="{{ config.get('CRM_URL','') }}">
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label" style="font-size:12px;color:var(--muted)">CRM ADMIN PASSWORD</label>
+            <input type="password" name="CRM_PASSWORD" class="form-control"
+                   placeholder="Your BIM CRM admin password"
+                   value="{{ config.get('CRM_PASSWORD','') }}">
+          </div>
+
+          <div class="d-flex gap-2 align-items-center flex-wrap">
+            <button type="submit" class="btn btn-primary">Save Settings</button>
+            {% if config.get('LINKEDIN_CLIENT_ID') %}
+              <a href="{{ url_for('linkedin_auth') }}" class="btn btn-outline-secondary" style="background:#0a66c2;color:#fff;border-color:#0a66c2">
+                <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24" class="me-1"><path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg>
+                Connect LinkedIn
+              </a>
+              <span style="font-size:11px;color:var(--muted)">One-time auth — opens LinkedIn in browser</span>
+            {% endif %}
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-5">
+    <!-- Status check -->
+    <div class="card mb-3">
+      <div class="card-header px-4 py-2"><span style="font-weight:600;font-size:13px">API Status</span></div>
+      <div class="card-body px-4 py-3" style="font-size:13px">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <span>Hunter.io</span>
+          {% if config.get('HUNTER_API_KEY') %}
+            <span class="badge bg-success">Configured</span>
+          {% else %}
+            <span class="badge bg-danger">Not set</span>
+          {% endif %}
+        </div>
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <span>LinkedIn</span>
+          {% if config.get('LINKEDIN_CLIENT_ID') %}
+            <span class="badge bg-success">Configured</span>
+          {% else %}
+            <span class="badge bg-secondary">Optional</span>
+          {% endif %}
+        </div>
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <span>Google Search</span>
+          <span class="badge bg-success">Free (built-in)</span>
+        </div>
+        <div class="d-flex justify-content-between align-items-center">
+          <span>CRM Sync</span>
+          {% if config.get('CRM_URL') %}
+            <span class="badge bg-success">Configured</span>
+          {% else %}
+            <span class="badge bg-secondary">Not set</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Scoring info -->
+    <div class="card">
+      <div class="card-header px-4 py-2"><span style="font-weight:600;font-size:13px">Score Tiers</span></div>
+      <div class="card-body px-4 py-3" style="font-size:12px">
+        <div class="d-flex justify-content-between mb-2">
+          <span style="color:#ef4444;font-weight:600">● Hot</span>
+          <span class="text-muted">85–100 points</span>
+        </div>
+        <div class="d-flex justify-content-between mb-2">
+          <span style="color:#f97316;font-weight:600">● High</span>
+          <span class="text-muted">70–84 points</span>
+        </div>
+        <div class="d-flex justify-content-between mb-2">
+          <span style="color:#f59e0b;font-weight:600">● Medium</span>
+          <span class="text-muted">55–69 points</span>
+        </div>
+        <div class="d-flex justify-content-between">
+          <span style="color:#64748b;font-weight:600">● Low</span>
+          <span class="text-muted">0–54 points</span>
+        </div>
+        <hr style="border-color:var(--border);margin:10px 0">
+        <div style="color:var(--muted);line-height:1.8">
+          +40 scan to bim · +38 point cloud<br>
+          +35 drone survey · +18 bim<br>
+          +12 Germany/DACH · +10 UK/AU<br>
+          +8 named email · +5 phone<br>
+          -15 free domain email
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

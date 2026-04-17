@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+{% block title %}Lead #{{ lead.id }} — BIM LeadGen{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center gap-3 mb-4">
+  <a href="{{ url_for('leads_page') }}" class="text-muted" style="font-size:13px">← Leads</a>
+  <div class="flex-grow-1">
+    <h4 class="mb-0" style="font-weight:700">{{ lead.company or lead.name or 'Unknown Lead' }}</h4>
+    <div class="text-muted" style="font-size:12px">Lead #{{ lead.id }} · {{ lead.source }} · {{ lead.created_at[:10] if lead.created_at else '' }}</div>
+  </div>
+  <!-- Score badge -->
+  {% set sc = lead.score or 0 %}
+  <div class="text-center" style="min-width:70px">
+    <div style="font-size:2rem;font-weight:800;color:{% if sc>=85 %}#ef4444{% elif sc>=70 %}#f97316{% elif sc>=55 %}#f59e0b{% else %}#64748b{% endif %}">{{ sc }}</div>
+    <div style="font-size:10px;color:var(--muted)">SCORE</div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <!-- Left: Contact info -->
+  <div class="col-md-5">
+    <div class="card mb-3">
+      <div class="card-header px-4 py-2"><span style="font-weight:600;font-size:13px">Contact Info</span></div>
+      <div class="card-body px-4 py-3" style="font-size:13px">
+        <table style="width:100%;border-collapse:separate;border-spacing:0 6px">
+          <tr>
+            <td style="color:var(--muted);width:100px">Name</td>
+            <td><strong>{{ lead.name or '—' }}</strong></td>
+          </tr>
+          <tr>
+            <td style="color:var(--muted)">Title</td>
+            <td>{{ lead.title or '—' }}</td>
+          </tr>
+          <tr>
+            <td style="color:var(--muted)">Company</td>
+            <td>{{ lead.company or '—' }}</td>
+          </tr>
+          <tr>
+            <td style="color:var(--muted)">Email</td>
+            <td>
+              {% if lead.email %}
+                <a href="mailto:{{ lead.email }}" style="color:var(--accent)">{{ lead.email }}</a>
+                {% if lead.email_verified %}
+                  <span class="badge bg-success ms-1" style="font-size:9px">Verified</span>
+                {% endif %}
+                {% if lead.email_type %}
+                  <span class="badge bg-secondary ms-1" style="font-size:9px">{{ lead.email_type }}</span>
+                {% endif %}
+              {% else %}—{% endif %}
+            </td>
+          </tr>
+          <tr>
+            <td style="color:var(--muted)">Phone</td>
+            <td>{{ lead.phone or '—' }}</td>
+          </tr>
+          <tr>
+            <td style="color:var(--muted)">Website</td>
+            <td>{% if lead.website %}<a href="{{ lead.website }}" target="_blank" style="color:var(--accent)">{{ lead.website }}</a>{% else %}—{% endif %}</td>
+          </tr>
+          <tr>
+            <td style="color:var(--muted)">LinkedIn</td>
+            <td>{% if lead.linkedin_url %}<a href="{{ lead.linkedin_url }}" target="_blank" style="color:#4f8ef7">Profile</a>{% else %}—{% endif %}</td>
+          </tr>
+          <tr>
+            <td style="color:var(--muted)">Country</td>
+            <td>{{ lead.country or '—' }}</td>
+          </tr>
+          <tr>
+            <td style="color:var(--muted)">Source</td>
+            <td><span class="badge bg-secondary">{{ lead.source }}</span></td>
+          </tr>
+          {% if lead.source_url %}
+          <tr>
+            <td style="color:var(--muted)">Source URL</td>
+            <td><a href="{{ lead.source_url }}" target="_blank" style="color:var(--muted);font-size:11px">{{ lead.source_url[:50] }}...</a></td>
+          </tr>
+          {% endif %}
+          {% if lead.search_query %}
+          <tr>
+            <td style="color:var(--muted)">Query</td>
+            <td style="font-size:11px;color:var(--muted)">{{ lead.search_query }}</td>
+          </tr>
+          {% endif %}
+        </table>
+      </div>
+    </div>
+
+    <!-- Score breakdown -->
+    {% if score_breakdown %}
+    <div class="card">
+      <div class="card-header px-4 py-2"><span style="font-weight:600;font-size:13px">Score Breakdown</span></div>
+      <div class="card-body px-4 py-3" style="font-size:12px">
+        {% if score_breakdown.hits %}
+          {% for h in score_breakdown.hits %}
+          <div class="d-flex justify-content-between mb-1">
+            <span style="color:var(--muted)">{{ h.kw }}</span>
+            <span style="color:#5ddb8a;font-weight:600">+{{ h.pts }}</span>
+          </div>
+          {% endfor %}
+        {% endif %}
+        {% if score_breakdown.bonuses %}
+          {% for b in score_breakdown.bonuses %}
+          <div class="d-flex justify-content-between mb-1">
+            <span style="color:var(--muted)">{{ b.reason }}</span>
+            <span style="color:#5ddb8a;font-weight:600">+{{ b.pts }}</span>
+          </div>
+          {% endfor %}
+        {% endif %}
+        {% if score_breakdown.penalties %}
+          {% for p in score_breakdown.penalties %}
+          <div class="d-flex justify-content-between mb-1">
+            <span style="color:var(--muted)">{{ p.reason }}</span>
+            <span style="color:#e57373;font-weight:600">{{ p.pts }}</span>
+          </div>
+          {% endfor %}
+        {% endif %}
+        {% for key in ['kw_total','country_bonus','combo_total','contact_bonus'] %}
+          {% if score_breakdown[key] is defined and score_breakdown[key] != 0 %}
+          <div class="d-flex justify-content-between mb-1">
+            <span style="color:var(--muted)">{{ key.replace('_',' ').title() }}</span>
+            {% set v = score_breakdown[key] %}
+            <span style="color:{% if v > 0 %}#5ddb8a{% else %}#e57373{% endif %};font-weight:600">
+              {% if v > 0 %}+{% endif %}{{ v }}
+            </span>
+          </div>
+          {% endif %}
+        {% endfor %}
+        <hr style="border-color:var(--border)">
+        <div class="d-flex justify-content-between">
+          <span style="font-weight:600">Total</span>
+          <span style="font-weight:700;color:{% if sc>=85 %}#e57373{% elif sc>=70 %}#ffcc55{% elif sc>=55 %}#5ddb8a{% else %}#888{% endif %}">{{ sc }}</span>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Right: Actions + notes -->
+  <div class="col-md-7">
+    <!-- Review actions -->
+    <div class="card mb-3">
+      <div class="card-header px-4 py-2 d-flex justify-content-between align-items-center">
+        <span style="font-weight:600;font-size:13px">Review</span>
+        {% if lead.review_status == 'approved' %}
+          <span class="badge bg-success">Approved</span>
+        {% elif lead.review_status == 'rejected' %}
+          <span class="badge bg-danger">Rejected</span>
+        {% else %}
+          <span class="badge bg-secondary">Pending</span>
+        {% endif %}
+      </div>
+      <div class="card-body px-4 py-3">
+        <div class="d-flex gap-2 flex-wrap">
+          <form method="POST" action="{{ url_for('lead_detail', lead_id=lead.id) }}">
+            <input type="hidden" name="action" value="approve">
+            <button class="btn btn-sm btn-success" {% if lead.review_status=='approved' %}disabled{% endif %}>
+              ✓ Approve
+            </button>
+          </form>
+          <form method="POST" action="{{ url_for('lead_detail', lead_id=lead.id) }}">
+            <input type="hidden" name="action" value="reject">
+            <button class="btn btn-sm btn-danger" {% if lead.review_status=='rejected' %}disabled{% endif %}>
+              ✗ Reject
+            </button>
+          </form>
+          <form method="POST" action="{{ url_for('lead_detail', lead_id=lead.id) }}">
+            <input type="hidden" name="action" value="enrich">
+            <button class="btn btn-sm btn-outline-secondary">
+              ⟳ Enrich Email
+            </button>
+          </form>
+          {% if lead.review_status == 'approved' and not lead.synced_to_crm %}
+          <form method="POST" action="{{ url_for('lead_detail', lead_id=lead.id) }}">
+            <input type="hidden" name="action" value="sync">
+            <button class="btn btn-sm btn-primary">
+              → Sync to CRM
+            </button>
+          </form>
+          {% endif %}
+          {% if lead.synced_to_crm %}
+            <span class="badge bg-success align-self-center" style="font-size:11px">Synced to CRM ✓</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Notes -->
+    <div class="card mb-3">
+      <div class="card-header px-4 py-2"><span style="font-weight:600;font-size:13px">Notes</span></div>
+      <div class="card-body px-4 py-3">
+        <form method="POST" action="{{ url_for('lead_detail', lead_id=lead.id) }}">
+          <input type="hidden" name="action" value="notes">
+          <textarea name="notes" class="form-control mb-2" rows="4" placeholder="Add notes about this lead...">{{ lead.notes or '' }}</textarea>
+          <button type="submit" class="btn btn-sm btn-outline-secondary">Save Notes</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Raw data -->
+    {% if lead.raw_data %}
+    <div class="card">
+      <div class="card-header px-4 py-2"><span style="font-weight:600;font-size:13px">Raw Data</span></div>
+      <div class="card-body px-4 py-3">
+        <pre style="font-size:11px;color:var(--muted);white-space:pre-wrap;word-break:break-all;max-height:200px;overflow-y:auto;margin:0">{{ lead.raw_data }}</pre>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

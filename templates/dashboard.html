@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — BIM LeadGen{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h4>Dashboard</h4>
+    <small>Lead generation overview</small>
+  </div>
+  <a href="{{ url_for('search_page') }}" class="btn btn-primary btn-sm">
+    <i class="bi bi-search me-1"></i> New Search
+  </a>
+</div>
+
+<!-- Stats row -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="stat-card">
+      <div class="number">{{ stats.total }}</div>
+      <div class="label">Total Leads</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card">
+      <div class="number" style="color:#ffcc55">{{ stats.pending }}</div>
+      <div class="label">Pending Review</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card">
+      <div class="number" style="color:#5ddb8a">{{ stats.approved }}</div>
+      <div class="label">Approved</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card">
+      <div class="number" style="color:#e57373">{{ stats.hot }}</div>
+      <div class="label">Hot Leads (85+)</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="stat-card">
+      <div class="number" style="color:#5ddb8a">{{ stats.with_email }}</div>
+      <div class="label">Have Email</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="stat-card">
+      <div class="number" style="color:#ce93d8">{{ stats.synced }}</div>
+      <div class="label">Synced to CRM</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="stat-card">
+      <div class="number" style="color:#ffcc55">{{ stats.jobs_running }}</div>
+      <div class="label">Jobs Running</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <!-- Recent jobs -->
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center py-2 px-3">
+        <span style="font-weight:600;font-size:13px">Recent Search Jobs</span>
+        <a href="{{ url_for('jobs_page') }}" class="text-muted" style="font-size:11px">View all</a>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm mb-0">
+          <thead><tr>
+            <th style="font-size:11px;padding:8px 12px">Query</th>
+            <th style="font-size:11px;padding:8px 12px">Status</th>
+            <th style="font-size:11px;padding:8px 12px">Leads</th>
+            <th style="font-size:11px;padding:8px 12px">Started</th>
+          </tr></thead>
+          <tbody>
+            {% for job in recent_jobs %}
+            <tr>
+              <td style="padding:7px 12px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{ job.query }}">
+                <a href="{{ url_for('job_detail', job_id=job.id) }}" class="text-decoration-none" style="color:var(--accent)">{{ job.query }}</a>
+              </td>
+              <td style="padding:7px 12px">
+                {% if job.status == 'running' %}
+                  <span class="badge bg-warning text-dark job-running">Running</span>
+                {% elif job.status == 'done' %}
+                  <span class="badge bg-success">Done</span>
+                {% elif job.status == 'error' %}
+                  <span class="badge bg-danger">Error</span>
+                {% else %}
+                  <span class="badge bg-secondary">{{ job.status }}</span>
+                {% endif %}
+              </td>
+              <td style="padding:7px 12px">{{ job.leads_found or 0 }}</td>
+              <td style="padding:7px 12px;color:var(--muted);font-size:11px">{{ job.created_at[:16] if job.created_at else '' }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4" class="text-center text-muted py-4" style="font-size:12px">No jobs yet — <a href="{{ url_for('search_page') }}">start a search</a></td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top leads -->
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center py-2 px-3">
+        <span style="font-weight:600;font-size:13px">Top Leads by Score</span>
+        <a href="{{ url_for('leads_page') }}" class="text-muted" style="font-size:11px">View all</a>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm mb-0">
+          <thead><tr>
+            <th style="font-size:11px;padding:8px 12px">Company / Name</th>
+            <th style="font-size:11px;padding:8px 12px">Score</th>
+            <th style="font-size:11px;padding:8px 12px">Status</th>
+          </tr></thead>
+          <tbody>
+            {% for lead in top_leads %}
+            <tr>
+              <td style="padding:7px 12px">
+                <a href="{{ url_for('lead_detail', lead_id=lead.id) }}" class="text-decoration-none" style="color:var(--text)">
+                  {{ lead.company or lead.name or 'Unknown' }}
+                </a>
+                {% if lead.email %}
+                  <div style="font-size:10px;color:var(--muted)">{{ lead.email }}</div>
+                {% endif %}
+              </td>
+              <td style="padding:7px 12px">
+                {% set sc = lead.score or 0 %}
+                <span style="font-weight:700;color:{% if sc>=85 %}#ef4444{% elif sc>=70 %}#f97316{% elif sc>=55 %}#f59e0b{% else %}#64748b{% endif %}">
+                  {{ sc }}
+                </span>
+              </td>
+              <td style="padding:7px 12px">
+                {% if lead.review_status == 'approved' %}
+                  <span class="badge bg-success" style="font-size:10px">Approved</span>
+                {% elif lead.review_status == 'rejected' %}
+                  <span class="badge bg-danger" style="font-size:10px">Rejected</span>
+                {% else %}
+                  <span class="badge bg-secondary" style="font-size:10px">Pending</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="3" class="text-center text-muted py-4" style="font-size:12px">No leads yet</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if stats.jobs_running > 0 %}
+<script>
+  // Auto-refresh dashboard if jobs are running
+  setTimeout(() => location.reload(), 10000);
+</script>
+{% endif %}
+{% endblock %}

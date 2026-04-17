@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}Job #{{ job.id }} — BIM LeadGen{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center gap-3 mb-4">
+  <a href="{{ url_for('jobs_page') }}" class="text-muted" style="font-size:13px">← Jobs</a>
+  <div>
+    <h4 class="mb-0" style="font-weight:700">Search Job #{{ job.id }}</h4>
+    <div class="text-muted" style="font-size:12px">{{ job.query }}</div>
+  </div>
+  {% if job.status == 'running' %}
+    <span class="badge bg-warning text-dark ms-auto job-running" style="font-size:13px;padding:6px 12px">Running...</span>
+  {% elif job.status == 'done' %}
+    <span class="badge bg-success ms-auto" style="font-size:13px;padding:6px 12px">Completed</span>
+  {% elif job.status == 'error' %}
+    <span class="badge bg-danger ms-auto" style="font-size:13px;padding:6px 12px">Error</span>
+  {% endif %}
+</div>
+
+<!-- Job info -->
+<div class="row g-3 mb-4">
+  <div class="col-md-8">
+    <div class="card">
+      <div class="card-body px-4 py-3" style="font-size:13px">
+        <div class="row g-2">
+          <div class="col-6"><span class="text-muted">Query:</span> <strong>{{ job.query }}</strong></div>
+          <div class="col-6"><span class="text-muted">Sources:</span> {{ job.sources or 'google' }}</div>
+          <div class="col-6"><span class="text-muted">Started:</span> {{ job.created_at[:19] if job.created_at else '—' }}</div>
+          <div class="col-6"><span class="text-muted">Finished:</span> {{ job.finished_at[:19] if job.finished_at else '—' }}</div>
+          <div class="col-6"><span class="text-muted">Leads found:</span> <strong style="color:var(--green)">{{ job.leads_found or 0 }}</strong></div>
+          <div class="col-6"><span class="text-muted">Country filter:</span> {{ job.country or 'All' }}</div>
+        </div>
+        {% if job.error_msg %}
+          <div class="alert alert-danger mt-3 mb-0" style="font-size:12px">{{ job.error_msg }}</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card h-100">
+      <div class="card-body px-4 py-3 d-flex flex-column justify-content-center align-items-center">
+        <div style="font-size:3rem;font-weight:700;color:var(--accent)">{{ job.leads_found or 0 }}</div>
+        <div class="text-muted" style="font-size:12px">Leads Generated</div>
+        {% if job.leads_found %}
+          <a href="{{ url_for('leads_page', job_id=job.id) }}" class="btn btn-sm btn-primary mt-3">View Leads</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Leads from this job -->
+{% if leads %}
+<div class="card">
+  <div class="card-header px-4 py-2 d-flex justify-content-between align-items-center">
+    <span style="font-weight:600;font-size:13px">Leads from this job ({{ leads|length }})</span>
+    <a href="{{ url_for('leads_page', job_id=job.id) }}" class="text-muted" style="font-size:11px">Full view →</a>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover table-sm mb-0">
+      <thead><tr>
+        <th style="padding:8px 14px;font-size:11px">Company</th>
+        <th style="padding:8px 14px;font-size:11px">Name</th>
+        <th style="padding:8px 14px;font-size:11px">Email</th>
+        <th style="padding:8px 14px;font-size:11px">Source</th>
+        <th style="padding:8px 14px;font-size:11px">Score</th>
+        <th style="padding:8px 14px;font-size:11px">Review</th>
+        <th style="padding:8px 14px;font-size:11px"></th>
+      </tr></thead>
+      <tbody>
+        {% for lead in leads[:50] %}
+        <tr>
+          <td style="padding:7px 14px">{{ lead.company or '—' }}</td>
+          <td style="padding:7px 14px">{{ lead.name or '—' }}</td>
+          <td style="padding:7px 14px;font-size:11px;color:var(--muted)">{{ lead.email or '—' }}</td>
+          <td style="padding:7px 14px"><span class="badge bg-secondary" style="font-size:10px">{{ lead.source }}</span></td>
+          <td style="padding:7px 14px;font-weight:700;color:{% set s=lead.score or 0 %}{% if s>=85 %}#ef4444{% elif s>=70 %}#f97316{% elif s>=55 %}#f59e0b{% else %}#64748b{% endif %}">{{ lead.score or 0 }}</td>
+          <td style="padding:7px 14px">
+            {% if lead.review_status == 'approved' %}
+              <span class="badge bg-success" style="font-size:10px">Approved</span>
+            {% elif lead.review_status == 'rejected' %}
+              <span class="badge bg-danger" style="font-size:10px">Rejected</span>
+            {% else %}
+              <span class="badge bg-secondary" style="font-size:10px">Pending</span>
+            {% endif %}
+          </td>
+          <td style="padding:7px 14px">
+            <a href="{{ url_for('lead_detail', lead_id=lead.id) }}" class="btn btn-sm btn-outline-secondary" style="font-size:10px;padding:2px 8px">View</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if job.status == 'running' %}
+<script>setTimeout(() => location.reload(), 5000);</script>
+{% endif %}
+{% endblock %}

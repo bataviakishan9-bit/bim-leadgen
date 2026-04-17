@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+{% block title %}Leads — BIM LeadGen{% endblock %}
+{% block page_title %}Leads{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><h4>Leads</h4><small>{{ total }} leads total</small></div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('search_page') }}" class="btn btn-primary btn-sm"><i class="bi bi-search me-1"></i>New Search</a>
+    <form method="POST" action="{{ url_for('bulk_action') }}" id="bulk-form">
+      <input type="hidden" name="action" id="bulk-action-input">
+      <div id="bulk-btns" class="d-none d-flex gap-2">
+        <button type="button" class="btn btn-sm btn-success" onclick="submitBulk('approve')">Approve Selected</button>
+        <button type="button" class="btn btn-sm btn-danger" onclick="submitBulk('reject')">Reject Selected</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="submitBulk('sync')">Sync to CRM</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-3">
+  <div class="card-body px-4 py-3">
+    <form method="GET" class="row g-2 align-items-end">
+      <div class="col-md-4">
+        <input type="text" name="q" class="form-control form-control-sm" placeholder="Search company, email, name..."
+               value="{{ filters.q or '' }}">
+      </div>
+      <div class="col-md-2">
+        <select name="status" class="form-select form-select-sm">
+          <option value="">All statuses</option>
+          <option value="pending"  {% if filters.status=='pending'  %}selected{% endif %}>Pending</option>
+          <option value="approved" {% if filters.status=='approved' %}selected{% endif %}>Approved</option>
+          <option value="rejected" {% if filters.status=='rejected' %}selected{% endif %}>Rejected</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <select name="tier" class="form-select form-select-sm">
+          <option value="">All tiers</option>
+          <option value="hot"    {% if filters.tier=='hot'    %}selected{% endif %}>Hot (85+)</option>
+          <option value="high"   {% if filters.tier=='high'   %}selected{% endif %}>High (70+)</option>
+          <option value="medium" {% if filters.tier=='medium' %}selected{% endif %}>Medium (55+)</option>
+          <option value="low"    {% if filters.tier=='low'    %}selected{% endif %}>Low</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <select name="source" class="form-select form-select-sm">
+          <option value="">All sources</option>
+          {% for src in sources %}
+            <option value="{{ src }}" {% if filters.source==src %}selected{% endif %}>{{ src }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-sm btn-outline-secondary w-100">Filter</button>
+      </div>
+      {% if filters.job_id %}
+        <input type="hidden" name="job_id" value="{{ filters.job_id }}">
+      {% endif %}
+    </form>
+  </div>
+</div>
+
+<!-- Table -->
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead><tr>
+        <th style="padding:10px 14px;width:32px">
+          <input type="checkbox" id="select-all" onchange="toggleAll(this)">
+        </th>
+        <th style="padding:10px 14px;font-size:11px">Company</th>
+        <th style="padding:10px 14px;font-size:11px">Name / Title</th>
+        <th style="padding:10px 14px;font-size:11px">Email</th>
+        <th style="padding:10px 14px;font-size:11px">Country</th>
+        <th style="padding:10px 14px;font-size:11px">Source</th>
+        <th style="padding:10px 14px;font-size:11px">Score</th>
+        <th style="padding:10px 14px;font-size:11px">Review</th>
+        <th style="padding:10px 14px;font-size:11px">Synced</th>
+        <th style="padding:10px 14px;font-size:11px"></th>
+      </tr></thead>
+      <tbody>
+        {% for lead in leads %}
+        <tr>
+          <td style="padding:9px 14px">
+            <input type="checkbox" class="row-check" value="{{ lead.id }}" form="bulk-form" name="lead_ids">
+          </td>
+          <td style="padding:9px 14px;font-weight:500;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+            {{ lead.company or '—' }}
+          </td>
+          <td style="padding:9px 14px">
+            <div>{{ lead.name or '—' }}</div>
+            {% if lead.title %}
+              <div style="font-size:10px;color:var(--muted)">{{ lead.title[:40] }}</div>
+            {% endif %}
+          </td>
+          <td style="padding:9px 14px;font-size:11px">
+            {% if lead.email %}
+              <a href="mailto:{{ lead.email }}" style="color:var(--accent)">{{ lead.email }}</a>
+              {% if lead.email_verified %}
+                <svg width="10" height="10" fill="#22c55e" viewBox="0 0 24 24" class="ms-1" title="Verified"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              {% endif %}
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td style="padding:9px 14px;font-size:11px;color:var(--muted)">{{ lead.country or '—' }}</td>
+          <td style="padding:9px 14px">
+            <span class="badge bg-secondary" style="font-size:10px">{{ lead.source }}</span>
+          </td>
+          <td style="padding:9px 14px">
+            {% set sc = lead.score or 0 %}
+            <span style="font-weight:700;font-size:13px;color:{% if sc>=85 %}#ef4444{% elif sc>=70 %}#f97316{% elif sc>=55 %}#f59e0b{% else %}#64748b{% endif %}">
+              {{ sc }}
+            </span>
+          </td>
+          <td style="padding:9px 14px">
+            {% if lead.review_status == 'approved' %}
+              <span class="badge bg-success" style="font-size:10px">Approved</span>
+            {% elif lead.review_status == 'rejected' %}
+              <span class="badge bg-danger" style="font-size:10px">Rejected</span>
+            {% else %}
+              <span class="badge bg-secondary" style="font-size:10px">Pending</span>
+            {% endif %}
+          </td>
+          <td style="padding:9px 14px">
+            {% if lead.synced_to_crm %}
+              <svg width="14" height="14" fill="#22c55e" viewBox="0 0 24 24" title="Synced"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            {% else %}
+              <span style="color:var(--border)">—</span>
+            {% endif %}
+          </td>
+          <td style="padding:9px 14px">
+            <a href="{{ url_for('lead_detail', lead_id=lead.id) }}" class="btn btn-sm btn-outline-secondary" style="font-size:11px;padding:2px 10px">View</a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="10" class="text-center text-muted py-5">
+            No leads found — try a different filter or <a href="{{ url_for('search_page') }}">start a search</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  {% if total_pages > 1 %}
+  <div class="card-footer px-4 py-3 d-flex justify-content-between align-items-center">
+    <div class="text-muted" style="font-size:12px">
+      Showing {{ (page-1)*per_page+1 }}–{{ [page*per_page, total]|min }} of {{ total }}
+    </div>
+    <div class="d-flex gap-1">
+      {% if page > 1 %}
+        <a href="?page={{ page-1 }}&{{ qs }}" class="btn btn-sm btn-outline-secondary">←</a>
+      {% endif %}
+      {% for p in range([1,page-2]|max, [total_pages+1,page+3]|min) %}
+        <a href="?page={{ p }}&{{ qs }}"
+           class="btn btn-sm {% if p==page %}btn-primary{% else %}btn-outline-secondary{% endif %}">{{ p }}</a>
+      {% endfor %}
+      {% if page < total_pages %}
+        <a href="?page={{ page+1 }}&{{ qs }}" class="btn btn-sm btn-outline-secondary">→</a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleAll(cb) {
+  document.querySelectorAll('.row-check').forEach(c => c.checked = cb.checked);
+  updateBulkBtns();
+}
+document.querySelectorAll('.row-check').forEach(c => c.addEventListener('change', updateBulkBtns));
+function updateBulkBtns() {
+  const any = document.querySelectorAll('.row-check:checked').length > 0;
+  document.getElementById('bulk-btns').classList.toggle('d-none', !any);
+  document.getElementById('bulk-btns').classList.toggle('d-flex', any);
+}
+function submitBulk(action) {
+  document.getElementById('bulk-action-input').value = action;
+  document.getElementById('bulk-form').submit();
+}
+</script>
+{% endblock %}

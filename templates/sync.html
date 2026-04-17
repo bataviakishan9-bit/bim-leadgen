@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}Sync to CRM — BIM LeadGen{% endblock %}
+{% block page_title %}Sync to CRM{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><h4>Sync to CRM</h4><small>Push approved leads to BIM CRM</small></div>
+</div>
+
+<div class="row g-3">
+  <div class="col-md-7">
+    <!-- Sync controls -->
+    <div class="card mb-3">
+      <div class="card-header px-4 py-3"><span style="font-weight:600">Sync Settings</span></div>
+      <div class="card-body px-4 py-4">
+        <div class="mb-3" style="font-size:13px">
+          <div class="d-flex justify-content-between mb-2">
+            <span class="text-muted">CRM URL</span>
+            <span>{{ crm_url or 'Not configured' }}</span>
+          </div>
+          <div class="d-flex justify-content-between mb-2">
+            <span class="text-muted">Approved (not yet synced)</span>
+            <span style="font-weight:600;color:var(--accent)">{{ pending_sync }}</span>
+          </div>
+          <div class="d-flex justify-content-between">
+            <span class="text-muted">Already synced</span>
+            <span>{{ already_synced }}</span>
+          </div>
+        </div>
+
+        {% if not crm_url %}
+          <div class="alert alert-warning mb-3" style="font-size:12px">
+            CRM URL not configured. Set it in <a href="{{ url_for('settings_page') }}">Settings</a>.
+          </div>
+        {% endif %}
+
+        <form method="POST" action="{{ url_for('run_sync') }}">
+          <div class="mb-3">
+            <label class="form-label" style="font-size:12px;color:var(--muted)">SYNC FILTER</label>
+            <select name="filter" class="form-select">
+              <option value="pending">Approved, not yet synced ({{ pending_sync }} leads)</option>
+              <option value="all">All approved leads</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary" {% if not crm_url %}disabled{% endif %}>
+            → Sync Now
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Sync log -->
+    {% if sync_log %}
+    <div class="card">
+      <div class="card-header px-4 py-2"><span style="font-weight:600;font-size:13px">Recent Sync Log</span></div>
+      <div class="table-responsive">
+        <table class="table table-sm mb-0">
+          <thead><tr>
+            <th style="padding:8px 14px;font-size:11px">Time</th>
+            <th style="padding:8px 14px;font-size:11px">Lead</th>
+            <th style="padding:8px 14px;font-size:11px">Status</th>
+            <th style="padding:8px 14px;font-size:11px">Message</th>
+          </tr></thead>
+          <tbody>
+            {% for entry in sync_log %}
+            <tr>
+              <td style="padding:7px 14px;font-size:11px;color:var(--muted)">{{ entry.created_at[:16] if entry.created_at else '' }}</td>
+              <td style="padding:7px 14px;font-size:12px">{{ entry.lead_id }}</td>
+              <td style="padding:7px 14px">
+                {% if entry.status == 'success' %}
+                  <span class="badge bg-success" style="font-size:10px">Success</span>
+                {% else %}
+                  <span class="badge bg-danger" style="font-size:10px">Failed</span>
+                {% endif %}
+              </td>
+              <td style="padding:7px 14px;font-size:11px;color:var(--muted)">{{ entry.message or '' }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="col-md-5">
+    <div class="card">
+      <div class="card-header px-4 py-2"><span style="font-weight:600;font-size:13px">How Sync Works</span></div>
+      <div class="card-body px-4 py-3" style="font-size:12px;color:var(--muted);line-height:2">
+        <ol class="ps-3 mb-0">
+          <li>Only <strong style="color:var(--text)">Approved</strong> leads are synced</li>
+          <li>Each lead is posted to BIM CRM as a new contact</li>
+          <li>Fields mapped: name, email, phone, company, title, LinkedIn, country, source, score</li>
+          <li>Already-synced leads are skipped (no duplicates)</li>
+          <li>Sync status tracked per lead</li>
+        </ol>
+        <hr style="border-color:var(--border);margin:10px 0">
+        <div>To approve leads in bulk, go to <a href="{{ url_for('leads_page') }}" style="color:var(--accent)">Leads</a>, select rows, and click "Approve Selected".</div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

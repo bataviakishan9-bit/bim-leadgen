@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>BIM Lead Generator — Login</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background:#0e0e0e; color:#e8e8e8;
+      display:flex; align-items:center; justify-content:center; min-height:100vh;
+      font-family:'Segoe UI',sans-serif;
+    }
+    .login-card {
+      background:#161616; border:1px solid rgba(255,255,255,0.07);
+      border-radius:12px; padding:40px; width:360px;
+      box-shadow:0 4px 24px rgba(0,0,0,0.5);
+    }
+    .brand-name  { font-size:1.3rem; font-weight:700; color:#fff; margin-bottom:2px; }
+    .brand-sub   { color:#D4A017; font-size:12px; margin-bottom:28px; }
+    .form-control {
+      background:#1f1f1f; border:1px solid rgba(255,255,255,0.07);
+      color:#e8e8e8; border-radius:6px;
+    }
+    .form-control::placeholder { color:#888; }
+    .form-control:focus {
+      background:#272727; border-color:#D4A017;
+      color:#e8e8e8; box-shadow:0 0 0 2px rgba(212,160,23,0.2);
+    }
+    .form-label { font-size:11px; text-transform:uppercase; letter-spacing:0.4px; color:#888; }
+    .btn-login {
+      background:#D4A017; color:#000; font-weight:700;
+      border:none; width:100%; padding:9px; border-radius:6px; font-size:14px;
+    }
+    .btn-login:hover { background:#c49010; color:#000; }
+    .alert { background:#2e0d0d; border-color:#5c1a1a; color:#e57373; font-size:13px; border-radius:6px; }
+  </style>
+</head>
+<body>
+  <div class="login-card">
+    <div class="brand-name">BIM Infra Solutions</div>
+    <div class="brand-sub">Lead Generator Platform</div>
+    {% if error %}
+      <div class="alert mb-3">{{ error }}</div>
+    {% endif %}
+    <form method="POST">
+      <div class="mb-3">
+        <label class="form-label">Username</label>
+        <input type="text" name="username" class="form-control" autofocus required>
+      </div>
+      <div class="mb-4">
+        <label class="form-label">Password</label>
+        <input type="password" name="password" class="form-control" required>
+      </div>
+      <button type="submit" class="btn-login">Sign In</button>
+    </form>
+  </div>
+</body>
+</html>
