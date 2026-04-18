@@ -358,3 +358,85 @@ def get_unread_notifications(user_id: int) -> int:
               (user_id,))
     row = c.fetchone(); conn.close()
     return (row["count"] if pg else row[0]) if row else 0
+
+
+# ── Activity Log ───────────────────────────────────────────────────────────────
+
+def init_activity_log_table():
+    conn, pg = _get_db()
+    c = conn.cursor()
+    pk = "SERIAL PRIMARY KEY" if pg else "INTEGER PRIMARY KEY AUTOINCREMENT"
+    c.execute(f"""
+        CREATE TABLE IF NOT EXISTS user_activity_log (
+            id         {pk},
+            user_id    INTEGER DEFAULT 0,
+            username   TEXT NOT NULL DEFAULT 'system',
+            action     TEXT NOT NULL,
+            details    TEXT DEFAULT '',
+            ip_address TEXT DEFAULT '',
+            platform   TEXT DEFAULT 'crm',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    conn.commit(); conn.close()
+
+
+def log_activity(user_id: int, username: str, action: str,
+                 details: str = "", ip: str = "", platform: str = "crm"):
+    try:
+        conn, pg = _get_db()
+        c = conn.cursor()
+        now = datetime.utcnow().isoformat()
+        if pg:
+            c.execute("""INSERT INTO user_activity_log
+                (user_id,username,action,details,ip_address,platform,created_at)
+                VALUES (%s,%s,%s,%s,%s,%s,%s)""",
+                (user_id, username, action, details[:500], ip, platform, now))
+        else:
+            c.execute("""INSERT INTO user_activity_log
+                (user_id,username,action,details,ip_address,platform,created_at)
+                VALUES (?,?,?,?,?,?,?)""",
+                (user_id, username, action, details[:500], ip, platform, now))
+        conn.commit(); conn.close()
+    except Exception as e:
+        log.warning("Activity log failed: %s", e)
+
+
+def get_activity_logs(platform: str = None, username: str = None,
+                      action: str = None, limit: int = 300, offset: int = 0):
+    conn, pg = _get_db()
+    c = conn.cursor()
+    where = ["1=1"]
+    params = []
+    if platform:
+        where.append(_q("platform=%s", pg)); params.append(platform)
+    if username:
+        where.append(_q("username=%s", pg)); params.append(username)
+    if action:
+        where.append(_q("action LIKE %s", pg) if pg else "action LIKE ?")
+        params.append(f"%{action}%")
+    sql = ("SELECT * FROM user_activity_log WHERE " + " AND ".join(where)
+           + " ORDER BY created_at DESC")
+    if pg:
+        sql += " LIMIT %s OFFSET %s"
+    else:
+        sql += " LIMIT ? OFFSET ?"
+    params += [limit, offset]
+    c.execute(sql, params)
+    rows = [dict(r) for r in c.fetchall()]
+    # total count
+    c.execute("SELECT COUNT(*) FROM user_activity_log WHERE " + " AND ".join(where),
+              params[:-2])
+    row = c.fetchone()
+    total = (row["count"] if pg else row[0]) if row else 0
+    conn.close()
+    return rows, total
+
+
+def get_activity_users():
+    """Return distinct usernames that have activity logs."""
+    conn, pg = _get_db()
+    c = conn.cursor()
+    c.execute("SELECT DISTINCT username FROM user_activity_log ORDER BY username")
+    rows = c.fetchall(); conn.close()
+    return [r["username"] if pg else r[0] for r in rows if r]

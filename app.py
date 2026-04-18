@@ -29,8 +29,20 @@ app.secret_key = os.getenv("SECRET_KEY", "bim-leadgen-2025")
 # ── Team / Chat integration ────────────────────────────────────────────────────
 try:
     tm.init_team_tables()
+    tm.init_activity_log_table()
 except Exception as _te:
     log.warning("Team tables init: %s", _te)
+
+
+def _lg_log(action: str, details: str = ""):
+    try:
+        uid   = session.get("team_user_id", 0)
+        uname = session.get("team_username", "unknown")
+        ip    = request.remote_addr or ""
+        tm.log_activity(uid, uname, action, details, ip, "leadgen")
+    except Exception:
+        pass
+
 
 def _lg_flask_user():
     uid = session.get("team_user_id")
@@ -92,14 +104,18 @@ def login():
         team_user = tm.authenticate(username, password)
         if team_user:
             login_user(LGUser(), remember=True)
-            session["team_user_id"] = team_user["id"]
-            session["team_role"]    = team_user["role"]
-            # Role check — viewers can still view LeadGen
+            session["team_user_id"]   = team_user["id"]
+            session["team_role"]      = team_user["role"]
+            session["team_username"]  = team_user["username"]
+            tm.log_activity(team_user["id"], username, "login", f"Logged in from {request.remote_addr}", request.remote_addr, "leadgen")
             return redirect(url_for("dashboard"))
         # Fallback to env-based admin
         if username == ADMIN_USER.lower() and check_password_hash(ADMIN_HASH, password):
             login_user(LGUser(), remember=True)
+            session["team_username"] = username
+            tm.log_activity(0, username, "login", f"Admin login from {request.remote_addr}", request.remote_addr, "leadgen")
             return redirect(url_for("dashboard"))
+        tm.log_activity(0, username or "unknown", "login_failed", f"Failed login from {request.remote_addr}", request.remote_addr, "leadgen")
         error = "Invalid username or password."
     return render_template("login.html", error=error)
 
@@ -147,6 +163,7 @@ def run_search():
         flash("Enter a search query.", "warning")
         return redirect(url_for("search_page"))
     job_id = db.create_job(query, sources, country=country, max_results=max_results)
+    _lg_log("start_search", f'Search: "{query}" | sources: {",".join(sources)} | country: {country} | max: {max_results}')
     _scheduler.add_job(
         _run_search_job,
         args=[job_id, query, sources, country, max_results],
@@ -258,6 +275,7 @@ def lead_detail(lead_id):
         action = request.form.get("action","")
         if action == "approve":
             db.update_lead(lead_id, {"status": "Approved"})
+            _lg_log("approve_lead", f"Approved lead #{lead_id}: {lead.get('company') or lead.get('name','?')}")
             flash("Lead approved.", "success")
             # Auto-sync to CRM
             _auto_sync_lead(lead_id, lead)
@@ -276,6 +294,7 @@ def lead_detail(lead_id):
                 pass
         elif action == "reject":
             db.update_lead(lead_id, {"status": "Rejected"})
+            _lg_log("reject_lead", f"Rejected lead #{lead_id}: {lead.get('company') or lead.get('name','?')}")
             flash("Lead rejected.", "info")
         elif action == "notes":
             db.update_lead(lead_id, {"notes": request.form.get("notes","")})
