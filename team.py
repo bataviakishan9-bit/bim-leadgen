@@ -31,25 +31,26 @@ def can(role: str, action: str) -> bool:
 
 
 # ── DB connection ──────────────────────────────────────────────────────────────
+_PG_AVAILABLE = None  # None = untested, True/False = cached result
+
 def _get_db():
+    global _PG_AVAILABLE
     DATABASE_URL = os.getenv("DATABASE_URL", "")
-    if DATABASE_URL:
+    if DATABASE_URL and _PG_AVAILABLE is not False:
         import psycopg2, psycopg2.extras
-        # Ensure sslmode is set — cross-region Render connections need it
         url = DATABASE_URL
         if "sslmode=" not in url:
             url += ("&" if "?" in url else "?") + "sslmode=require"
-        last_exc = None
-        for _attempt in range(3):
-            try:
-                return psycopg2.connect(url,
-                                        cursor_factory=psycopg2.extras.RealDictCursor,
-                                        connect_timeout=10), True
-            except Exception as e:
-                last_exc = e
-                import time; time.sleep(1)
-        raise last_exc
-    # SQLite fallback for local dev
+        try:
+            conn = psycopg2.connect(url,
+                                    cursor_factory=psycopg2.extras.RealDictCursor,
+                                    connect_timeout=8)
+            _PG_AVAILABLE = True
+            return conn, True
+        except Exception as e:
+            log.warning("Team DB PostgreSQL unavailable (%s), using SQLite", e)
+            _PG_AVAILABLE = False
+    # SQLite fallback (local dev OR when PostgreSQL unreachable)
     import sqlite3
     path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "team.db")
     conn = sqlite3.connect(path, timeout=30)
