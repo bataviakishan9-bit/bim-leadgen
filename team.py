@@ -35,8 +35,20 @@ def _get_db():
     DATABASE_URL = os.getenv("DATABASE_URL", "")
     if DATABASE_URL:
         import psycopg2, psycopg2.extras
-        return psycopg2.connect(DATABASE_URL,
-                                cursor_factory=psycopg2.extras.RealDictCursor), True
+        # Ensure sslmode is set — cross-region Render connections need it
+        url = DATABASE_URL
+        if "sslmode=" not in url:
+            url += ("&" if "?" in url else "?") + "sslmode=require"
+        last_exc = None
+        for _attempt in range(3):
+            try:
+                return psycopg2.connect(url,
+                                        cursor_factory=psycopg2.extras.RealDictCursor,
+                                        connect_timeout=10), True
+            except Exception as e:
+                last_exc = e
+                import time; time.sleep(1)
+        raise last_exc
     # SQLite fallback for local dev
     import sqlite3
     path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "team.db")
