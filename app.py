@@ -696,6 +696,38 @@ except Exception as _db_err:
     log.warning("App starting without DB — some features will be unavailable")
 
 
+# ── AUTOMATED BACKUP API ──────────────────────────────────────────────────────
+
+@app.route("/api/backup")
+def api_backup():
+    """Token-authenticated JSON backup for automated daily PC download."""
+    from flask import Response
+    import json as _json
+    secret = os.getenv("BACKUP_SECRET", os.getenv("SYNC_SECRET", "bim-sync-2025"))
+    token  = request.headers.get("X-Backup-Token","") or request.args.get("token","")
+    if token != secret:
+        return jsonify({"error": "unauthorized"}), 401
+    tables = ["raw_leads","search_jobs","sync_log","bounce_queue","app_config"]
+    conn = db.get_db()
+    c    = conn.cursor()
+    backup = {}
+    for t in tables:
+        try:
+            c.execute(f"SELECT * FROM {t}")
+            backup[t] = db._fetchall(c.fetchall())
+        except Exception:
+            backup[t] = []
+    conn.close()
+    def _default(o):
+        from datetime import date, datetime as dt
+        return str(o) if isinstance(o, (date, dt)) else str(o)
+    from datetime import datetime as _dt
+    ts   = _dt.now().strftime("%Y%m%d_%H%M")
+    data = _json.dumps(backup, default=_default, indent=2, ensure_ascii=False)
+    return Response(data, mimetype="application/json",
+                    headers={"Content-Disposition": f"attachment; filename=leadgen_backup_{ts}.json"})
+
+
 # ── Entry point ───────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
