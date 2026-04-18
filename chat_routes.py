@@ -1,22 +1,42 @@
 """
 Shared chat + notification routes — register on both CRM and LeadGen Flask apps.
 Usage:
-    from chat_routes import register_chat_routes
-    register_chat_routes(app, platform="crm")   # or "leadgen"
+    register_chat_routes(app, platform="crm")
+    # Optional: pass get_flask_user so chat works even if team_user_id not in session
+    register_chat_routes(app, platform="crm", get_flask_user=lambda: current_user.username)
 """
 from flask import Blueprint, request, jsonify, session
 from datetime import datetime, timezone
 import team as tm
 
-def register_chat_routes(app, platform: str = "general"):
+def register_chat_routes(app, platform: str = "general", get_flask_user=None):
 
     bp = Blueprint("chat", __name__)
 
     def _current_user():
         uid = session.get("team_user_id")
-        if not uid:
-            return None
-        return tm.get_user_by_id(uid)
+        if uid:
+            try:
+                u = tm.get_user_by_id(uid)
+                if u:
+                    return u
+            except Exception:
+                pass
+
+        # Fallback: derive from Flask-Login user if available
+        if get_flask_user:
+            try:
+                username = get_flask_user()
+                if username:
+                    u = tm.get_user_by_username(username)
+                    if u:
+                        session["team_user_id"] = u["id"]
+                        session["team_role"]    = u.get("role", "viewer")
+                        session.modified = True
+                        return u
+            except Exception:
+                pass
+        return None
 
     # ── Messages ──────────────────────────────────────────────────────────────
 

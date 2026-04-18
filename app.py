@@ -32,12 +32,25 @@ try:
 except Exception as _te:
     log.warning("Team tables init: %s", _te)
 
-register_chat_routes(app, platform="leadgen")
+def _lg_flask_user():
+    uid = session.get("team_user_id")
+    if uid:
+        try:
+            u = tm.get_user_by_id(uid)
+            return u["username"] if u else None
+        except Exception:
+            pass
+    return None
+
+register_chat_routes(app, platform="leadgen", get_flask_user=_lg_flask_user)
 
 @app.context_processor
 def inject_team():
     uid  = session.get("team_user_id")
-    user = tm.get_user_by_id(uid) if uid else None
+    try:
+        user = tm.get_user_by_id(uid) if uid else None
+    except Exception:
+        user = None
     role = session.get("team_role", "viewer")
     return dict(
         _current_user = user,
