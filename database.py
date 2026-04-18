@@ -8,15 +8,28 @@ from datetime import datetime
 
 DATABASE_URL = os.getenv("DATABASE_URL", "")
 _USE_PG      = bool(DATABASE_URL)
+_PG_OK       = None  # None=untested, True/False=cached
 
 def _is_pg():
-    return _USE_PG
+    return _USE_PG and _PG_OK is not False
 
 def get_db():
-    if _USE_PG:
+    global _PG_OK
+    if _USE_PG and _PG_OK is not False:
         import psycopg2, psycopg2.extras
-        conn = psycopg2.connect(DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor)
-        return conn
+        url = DATABASE_URL
+        if "sslmode=" not in url:
+            url += ("&" if "?" in url else "?") + "sslmode=require"
+        try:
+            conn = psycopg2.connect(url,
+                                    cursor_factory=psycopg2.extras.RealDictCursor,
+                                    connect_timeout=8)
+            _PG_OK = True
+            return conn
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning("PostgreSQL unavailable (%s), using SQLite", e)
+            _PG_OK = False
     DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "leadgen.db")
     conn = sqlite3.connect(DB_PATH, timeout=30)
     conn.row_factory = sqlite3.Row
@@ -24,7 +37,7 @@ def get_db():
     return conn
 
 def _q(sql):
-    if _USE_PG:
+    if _is_pg():
         return sql.replace("?", "%s")
     return sql
 
@@ -40,7 +53,7 @@ def _fetchone(row):
 def init_db():
     conn = get_db()
     c    = conn.cursor()
-    pk   = "SERIAL PRIMARY KEY" if _USE_PG else "INTEGER PRIMARY KEY AUTOINCREMENT"
+    pk   = "SERIAL PRIMARY KEY" if _is_pg() else "INTEGER PRIMARY KEY AUTOINCREMENT"
 
     c.execute(f"""
         CREATE TABLE IF NOT EXISTS raw_leads (
@@ -140,7 +153,7 @@ def get_config(key, default=""):
         c.execute(_q("SELECT value FROM app_config WHERE key=?"), (key,))
         row = c.fetchone(); conn.close()
         if row:
-            v = row["value"] if _USE_PG else row[0]
+            v = row["value"] if _is_pg() else row[0]
             return v if v is not None else default
     except Exception:
         pass
@@ -149,7 +162,7 @@ def get_config(key, default=""):
 def set_config(key, value):
     conn = get_db(); c = conn.cursor()
     now = datetime.utcnow().isoformat()
-    if _USE_PG:
+    if _is_pg():
         c.execute("INSERT INTO app_config (key,value,updated_at) VALUES (%s,%s,%s) "
                   "ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value, updated_at=EXCLUDED.updated_at",
                   (key, value, now))
@@ -164,7 +177,7 @@ def set_config(key, value):
 def insert_lead(lead: dict) -> int:
     conn = get_db(); c = conn.cursor()
     now = datetime.utcnow().isoformat()
-    if _USE_PG:
+    if _is_pg():
         c.execute("""
             INSERT INTO raw_leads (name,first_name,last_name,email,phone,company,title,
                 website,city,country,industry,linkedin_url,source,source_url,search_query,
@@ -232,7 +245,7 @@ def get_leads(status=None, min_score=0, country=None, source=None,
     # total count
     c.execute("SELECT COUNT(*) FROM raw_leads WHERE " + " AND ".join(where), count_params)
     row = c.fetchone()
-    total = (row["count"] if _USE_PG else row[0]) if row else 0
+    total = (row["count"] if _is_pg() else row[0]) if row else 0
     conn.close()
     return leads, total
 
@@ -285,7 +298,7 @@ def get_stats():
 
     def _count(sql, params=()):
         c.execute(sql, params); r = c.fetchone()
-        return (r["count"] if _USE_PG else r[0]) if r else 0
+        return (r["count"] if _is_pg() else r[0]) if r else 0
 
     stats["total"]    = _count("SELECT COUNT(*) FROM raw_leads")
     stats["pending"]  = _count(_q("SELECT COUNT(*) FROM raw_leads WHERE status=?"), ("New",))
@@ -310,7 +323,7 @@ def get_sources():
     conn = get_db(); c = conn.cursor()
     c.execute("SELECT DISTINCT source FROM raw_leads WHERE source IS NOT NULL ORDER BY source")
     rows = c.fetchall(); conn.close()
-    return [r["source"] if _USE_PG else r[0] for r in rows if r]
+    return [r["source"] if _is_pg() else r[0] for r in rows if r]
 
 
 def get_sync_log(limit=50):
@@ -323,7 +336,7 @@ def get_sync_log(limit=50):
 def log_sync(lead_id: int, status: str, message: str = ""):
     conn = get_db(); c = conn.cursor()
     now = datetime.utcnow().isoformat()
-    if _USE_PG:
+    if _is_pg():
         c.execute("INSERT INTO sync_log (raw_lead_id, action, error_message, synced_at) VALUES (%s,%s,%s,%s)",
                   (lead_id, status, message, now))
     else:
@@ -339,7 +352,7 @@ def create_job(query, sources, country="", max_results=50):
     conn = get_db(); c = conn.cursor()
     now = datetime.utcnow().isoformat()
     src_json = json.dumps(sources) if isinstance(sources, list) else sources
-    if _USE_PG:
+    if _is_pg():
         c.execute("INSERT INTO search_jobs (query,sources,status,created_at) "
                   "VALUES (%s,%s,'queued',%s) RETURNING id",
                   (query, src_json, now))
