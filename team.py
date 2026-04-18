@@ -115,6 +115,13 @@ def init_team_tables():
         )
     """)
 
+    # Add hunter_api_key column if it doesn't exist (safe migration)
+    try:
+        c.execute("ALTER TABLE team_users ADD COLUMN hunter_api_key TEXT DEFAULT ''")
+        conn.commit()
+    except Exception:
+        pass  # column already exists
+
     # Seed default users if table is empty
     c.execute("SELECT COUNT(*) FROM team_users")
     row = c.fetchone()
