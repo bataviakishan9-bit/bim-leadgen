@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+{% block title %}Leads · BIM LeadGen{% endblock %}
+{% block content %}
+
+<!-- ═══════════════════════════ HEADER ═══════════════════════════ -->
+<div class="page-header rise">
+  <div>
+    <div class="eyebrow">Discovery · Intelligence</div>
+    <h1 class="bim-h1" style="margin-top:6px;">Leads</h1>
+    <p class="text-ink-3 mono" style="font-size:11.5px; letter-spacing:0.12em; margin:4px 0 0;">
+      {{ total }} LEAD{{ 'S' if total != 1 }} · SCORED · DEDUPED
+    </p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('sync_page') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-repeat"></i> Sync</a>
+    <a href="{{ url_for('search_page') }}" class="btn btn-bim"><i class="bi bi-radar"></i> New Search</a>
+  </div>
+</div>
+
+<!-- ═══════════════════════════ BULK ACTIONS ═══════════════════════════ -->
+<form method="POST" action="{{ url_for('bulk_action') }}" id="bulk-form">
+  <input type="hidden" name="action" id="bulk-action-input">
+</form>
+
+<div id="bulk-btns" class="d-none rise-2" style="background:var(--bg-2); border:1px solid var(--stroke-gold); border-radius:var(--r-md); padding:12px 16px; margin-bottom:14px;">
+  <div class="d-flex align-items-center gap-3 flex-wrap">
+    <div class="eyebrow" style="color:var(--gold); margin:0;"><span id="selected-count">0</span> SELECTED</div>
+    <div class="d-flex gap-2 ms-auto">
+      <button type="button" class="btn btn-sm" style="background:rgba(132,204,22,0.15); border:1px solid rgba(132,204,22,0.4); color:var(--moss);" onclick="submitBulk('approve')">
+        <i class="bi bi-check-lg"></i> Approve
+      </button>
+      <button type="button" class="btn btn-sm" style="background:rgba(244,63,94,0.15); border:1px solid rgba(244,63,94,0.4); color:var(--rose);" onclick="submitBulk('reject')">
+        <i class="bi bi-x-lg"></i> Reject
+      </button>
+      <button type="button" class="btn btn-sm" style="background:rgba(34,211,238,0.15); border:1px solid rgba(34,211,238,0.4); color:var(--cyan);" onclick="submitBulk('sync')">
+        <i class="bi bi-arrow-repeat"></i> Sync to CRM
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════ FILTERS ═══════════════════════════ -->
+<div class="card rise-2" style="margin-bottom:18px; padding:14px 18px;">
+  <form method="GET" class="row g-2 align-items-center">
+    <div class="col-md-4">
+      <div style="position:relative;">
+        <i class="bi bi-search" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--ink-3); font-size:13px;"></i>
+        <input type="text" name="q" class="form-control" style="padding-left:34px;"
+               placeholder="Search company · email · name…" value="{{ filters.q or '' }}">
+      </div>
+    </div>
+    <div class="col-md-2">
+      <select name="status" class="form-select">
+        <option value="">All Status</option>
+        <option value="pending"  {% if filters.status=='pending'  %}selected{% endif %}>Pending</option>
+        <option value="approved" {% if filters.status=='approved' %}selected{% endif %}>Approved</option>
+        <option value="rejected" {% if filters.status=='rejected' %}selected{% endif %}>Rejected</option>
+      </select>
+    </div>
+    <div class="col-md-2">
+      <select name="tier" class="form-select">
+        <option value="">All Tiers</option>
+        <option value="hot"    {% if filters.tier=='hot'    %}selected{% endif %}>Hot (85+)</option>
+        <option value="high"   {% if filters.tier=='high'   %}selected{% endif %}>High (70+)</option>
+        <option value="medium" {% if filters.tier=='medium' %}selected{% endif %}>Medium (55+)</option>
+        <option value="low"    {% if filters.tier=='low'    %}selected{% endif %}>Low</option>
+      </select>
+    </div>
+    <div class="col-md-2">
+      <select name="source" class="form-select">
+        <option value="">All Sources</option>
+        {% for src in sources %}
+          <option value="{{ src }}" {% if filters.source==src %}selected{% endif %}>{{ src }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2 d-flex gap-1">
+      <button type="submit" class="btn btn-bim flex-grow-1">Filter</button>
+      <a href="{{ url_for('leads_page') }}" class="btn btn-outline-secondary" title="Clear"><i class="bi bi-x-lg"></i></a>
+    </div>
+    {% if filters.job_id %}<input type="hidden" name="job_id" value="{{ filters.job_id }}">{% endif %}
+  </form>
+</div>
+
+<!-- ═══════════════════════════ TABLE ═══════════════════════════ -->
+<div class="card rise-3" style="padding:0; overflow:hidden;">
+  <table class="table table-hover mb-0">
+    <thead>
+      <tr>
+        <th style="padding-left:18px !important; width:32px;">
+          <input type="checkbox" id="select-all" onchange="toggleAll(this)">
+        </th>
+        <th>Company</th>
+        <th>Name / Title</th>
+        <th>Email</th>
+        <th>Country</th>
+        <th>Source</th>
+        <th>Score</th>
+        <th>Review</th>
+        <th>Synced</th>
+        <th style="text-align:right; padding-right:18px !important;"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% if leads %}
+        {% for lead in leads %}
+        <tr>
+          <td style="padding-left:18px !important;">
+            <input type="checkbox" class="row-check" value="{{ lead.id }}" form="bulk-form" name="lead_ids">
+          </td>
+          <td style="max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600; color:var(--ink-0); font-size:12.5px;" title="{{ lead.company }}">
+            {{ lead.company or '—' }}
+          </td>
+          <td>
+            <div style="font-size:12.5px; color:var(--ink-1);">{{ lead.name or '—' }}</div>
+            {% if lead.title %}
+              <div class="mono" style="font-size:10px; color:var(--ink-3); margin-top:1px;">{{ lead.title[:40] }}</div>
+            {% endif %}
+          </td>
+          <td>
+            {% if lead.email %}
+              <a href="mailto:{{ lead.email }}" class="mono" style="font-size:11px; color:var(--ink-2); text-decoration:none;">{{ lead.email }}</a>
+              {% if lead.email_verified %}
+                <i class="bi bi-patch-check-fill" style="color:var(--moss); font-size:11px; margin-left:3px;" title="Verified"></i>
+              {% endif %}
+              {% if lead.email_type %}
+                <span class="chip" style="font-size:9px; padding:1px 6px; margin-left:3px;">{{ lead.email_type }}</span>
+              {% endif %}
+            {% else %}
+              <span class="text-ink-4">—</span>
+            {% endif %}
+          </td>
+          <td class="mono" style="font-size:11px; color:var(--ink-2);">{{ lead.country or '—' }}</td>
+          <td>
+            <span class="chip"><span class="pip"></span>{{ lead.source|upper }}</span>
+          </td>
+          <td>
+            {% set sc = lead.score or 0 %}
+            <span class="chip {% if sc>=85 %}danger{% elif sc>=70 %}warn{% elif sc>=55 %}gold{% else %}cyan{% endif %}">
+              <span class="pip"></span>{{ sc }}
+            </span>
+          </td>
+          <td>
+            {% if lead.review_status == 'approved' %}
+              <span class="chip success"><span class="pip"></span>APPROVED</span>
+            {% elif lead.review_status == 'rejected' %}
+              <span class="chip danger"><span class="pip"></span>REJECTED</span>
+            {% else %}
+              <span class="chip"><span class="pip"></span>PENDING</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if lead.synced_to_crm %}
+              <i class="bi bi-check-circle-fill" style="color:var(--moss); font-size:14px;" title="Synced"></i>
+            {% else %}
+              <span class="text-ink-4 mono" style="font-size:10px;">—</span>
+            {% endif %}
+          </td>
+          <td style="text-align:right; padding-right:18px !important;">
+            <a href="{{ url_for('lead_detail', lead_id=lead.id) }}" class="btn btn-outline-primary btn-sm">View</a>
+          </td>
+        </tr>
+        {% endfor %}
+      {% else %}
+        <tr>
+          <td colspan="10" style="text-align:center; padding:60px 20px;">
+            <i class="bi bi-people" style="font-size:36px; color:var(--ink-4); display:block; margin-bottom:8px;"></i>
+            <div style="color:var(--ink-2); font-size:14px;">No leads found — try a different filter.</div>
+            <div style="margin-top:14px;">
+              <a href="{{ url_for('search_page') }}" class="btn btn-bim btn-sm"><i class="bi bi-radar"></i> Start Search</a>
+            </div>
+          </td>
+        </tr>
+      {% endif %}
+    </tbody>
+  </table>
+
+  {% if total_pages > 1 %}
+  <div style="padding:14px 20px; border-top:1px solid var(--stroke-1); display:flex; justify-content:space-between; align-items:center; background:var(--bg-1);">
+    <div class="mono" style="font-size:11px; letter-spacing:0.12em; color:var(--ink-3); text-transform:uppercase;">
+      SHOWING {{ (page-1)*per_page+1 }}–{{ [page*per_page, total]|min }} OF {{ total }}
+    </div>
+    <div class="d-flex gap-1">
+      {% if page > 1 %}<a href="?page={{ page-1 }}&{{ qs }}" class="btn btn-sm btn-outline-secondary">←</a>{% endif %}
+      {% for p in range([1,page-2]|max, [total_pages+1,page+3]|min) %}
+        <a href="?page={{ p }}&{{ qs }}" class="btn btn-sm {% if p==page %}btn-bim{% else %}btn-outline-secondary{% endif %}">{{ p }}</a>
+      {% endfor %}
+      {% if page < total_pages %}<a href="?page={{ page+1 }}&{{ qs }}" class="btn btn-sm btn-outline-secondary">→</a>{% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleAll(cb) {
+  document.querySelectorAll('.row-check').forEach(c => c.checked = cb.checked);
+  updateBulkBtns();
+}
+document.querySelectorAll('.row-check').forEach(c => c.addEventListener('change', updateBulkBtns));
+function updateBulkBtns() {
+  const checked = document.querySelectorAll('.row-check:checked');
+  const any = checked.length > 0;
+  const box = document.getElementById('bulk-btns');
+  box.classList.toggle('d-none', !any);
+  document.getElementById('selected-count').textContent = checked.length;
+}
+function submitBulk(action) {
+  document.getElementById('bulk-action-input').value = action;
+  document.getElementById('bulk-form').submit();
+}
+</script>
+{% endblock %}

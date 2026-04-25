@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Search Jobs · BIM LeadGen{% endblock %}
+{% block content %}
+
+<div class="page-header rise">
+  <div>
+    <div class="eyebrow">Discovery · Queue</div>
+    <h1 class="bim-h1" style="margin-top:6px;">Search Jobs</h1>
+    <p class="text-ink-3 mono" style="font-size:11.5px; letter-spacing:0.12em; margin:4px 0 0;">
+      {{ jobs|length }} JOB{{ 'S' if jobs|length != 1 }} · HISTORY OF ALL RUNS
+    </p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary"><i class="bi bi-grid-1x2"></i> Dashboard</a>
+    <a href="{{ url_for('search_page') }}" class="btn btn-bim"><i class="bi bi-radar"></i> New Search</a>
+  </div>
+</div>
+
+<div class="card rise-2" style="padding:0; overflow:hidden;">
+  <table class="table table-hover mb-0">
+    <thead>
+      <tr>
+        <th style="padding-left:20px !important;">#</th>
+        <th>Query</th>
+        <th>Sources</th>
+        <th>Status</th>
+        <th>Leads</th>
+        <th>Started</th>
+        <th>Finished</th>
+        <th style="text-align:right; padding-right:20px !important;">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% if jobs %}
+        {% for job in jobs %}
+        <tr>
+          <td class="mono" style="padding-left:20px !important; font-size:11px; color:var(--ink-3);">#{{ job.id }}</td>
+          <td>
+            <a href="{{ url_for('job_detail', job_id=job.id) }}" style="color:var(--ink-0); font-weight:500; font-size:13px; text-decoration:none;">
+              {{ job.query }}
+            </a>
+          </td>
+          <td class="mono" style="font-size:11px; color:var(--ink-2);">{{ job.sources or 'google' }}</td>
+          <td>
+            {% if job.status == 'running' %}
+              <span class="chip warn"><span class="pip" style="animation: pulse 1.4s infinite;"></span>RUNNING</span>
+            {% elif job.status == 'done' %}
+              <span class="chip success"><span class="pip"></span>DONE</span>
+            {% elif job.status == 'error' %}
+              <span class="chip danger" title="{{ job.error_msg }}"><span class="pip"></span>ERROR</span>
+            {% else %}
+              <span class="chip"><span class="pip"></span>{{ job.status|upper }}</span>
+            {% endif %}
+          </td>
+          <td class="mono" style="font-size:12.5px; font-weight:600; color:var(--ink-0);">{{ job.leads_found or 0 }}</td>
+          <td class="mono" style="font-size:11px; color:var(--ink-3);">{{ job.created_at[:16] if job.created_at else '—' }}</td>
+          <td class="mono" style="font-size:11px; color:var(--ink-3);">{{ job.finished_at[:16] if job.finished_at else '—' }}</td>
+          <td style="text-align:right; padding-right:20px !important;">
+            <a href="{{ url_for('job_detail', job_id=job.id) }}" class="btn btn-outline-primary btn-sm">View</a>
+          </td>
+        </tr>
+        {% endfor %}
+      {% else %}
+        <tr>
+          <td colspan="8" style="text-align:center; padding:60px 20px;">
+            <i class="bi bi-radar" style="font-size:36px; color:var(--ink-4); display:block; margin-bottom:8px;"></i>
+            <div style="color:var(--ink-2); font-size:14px;">No search jobs yet.</div>
+            <div style="margin-top:14px;">
+              <a href="{{ url_for('search_page') }}" class="btn btn-bim btn-sm"><i class="bi bi-plus-lg"></i> Start First Search</a>
+            </div>
+          </td>
+        </tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+
+<style>
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+</style>
+{% endblock %}
+
+{% block scripts %}
+{% if jobs and jobs|selectattr('status','equalto','running')|list %}
+<script>setTimeout(() => location.reload(), 5000);</script>
+{% endif %}
+{% endblock %}

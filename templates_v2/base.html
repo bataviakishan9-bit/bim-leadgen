@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}BIM LeadGen · Discovery Engine{% endblock %}</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+
+  <!-- Anthropic brand type stack · Poppins + Lora -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- BIM Editorial Design System v3 · Anthropic brand -->
+  <link href="{{ url_for('static', filename='css/bim-v2.css') }}" rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/favicon.svg') }}">
+
+  {% block head_extra %}{% endblock %}
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════ SIDEBAR ═══════════════════════════════════════════ -->
+<aside class="sidebar">
+  <a class="brand" href="{{ url_for('dashboard') }}" style="text-decoration:none;">
+    <img src="{{ url_for('static', filename='img/bim-mark.png') }}"
+         alt="BIM Infrasolutions LLP" class="brand-mark"
+         onerror="this.onerror=null; this.src='{{ url_for('static', filename='img/bim-mark.svg') }}';">
+    <div class="brand-wordmark">
+      <h5>BIM&nbsp;Infrasolutions</h5>
+      <p>LeadGen · Discovery</p>
+    </div>
+  </a>
+
+  <div class="nav-scroll">
+    <nav class="nav flex-column">
+
+      <div style="padding:18px 14px 8px; font-family:var(--font-mono); font-size:10px; letter-spacing:0.24em; text-transform:uppercase; color:var(--inv-3); font-weight:500;">Discovery</div>
+      <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint=='dashboard' %}active{% endif %}">
+        <i class="bi bi-grid-1x2-fill"></i><span>Command Center</span>
+      </a>
+      <a href="{{ url_for('search_page') }}" class="nav-link {% if request.endpoint=='search_page' %}active{% endif %}">
+        <i class="bi bi-radar"></i><span>New Search</span>
+      </a>
+      <a href="{{ url_for('jobs_page') }}" class="nav-link {% if request.endpoint in ['jobs_page','job_detail'] %}active{% endif %}">
+        <i class="bi bi-list-task"></i><span>Search Jobs</span>
+      </a>
+      <a href="{{ url_for('leads_page') }}" class="nav-link {% if request.endpoint in ['leads_page','lead_detail'] %}active{% endif %}">
+        <i class="bi bi-people-fill"></i><span>Leads</span>
+      </a>
+
+      <hr>
+      <div style="padding:8px 14px; font-family:var(--font-mono); font-size:10px; letter-spacing:0.24em; text-transform:uppercase; color:var(--inv-3); font-weight:500;">Flow</div>
+      <a href="{{ url_for('sync_page') }}" class="nav-link {% if request.endpoint in ['sync_page','run_sync'] %}active{% endif %}">
+        <i class="bi bi-arrow-repeat"></i><span>Sync to CRM</span>
+      </a>
+      <a href="https://bim-crm.onrender.com" target="_blank" class="nav-link" style="color:var(--orange); opacity:0.85;">
+        <i class="bi bi-box-arrow-up-right"></i><span>Open CRM ↗</span>
+      </a>
+
+      <hr>
+      <div style="padding:8px 14px; font-family:var(--font-mono); font-size:10px; letter-spacing:0.24em; text-transform:uppercase; color:var(--inv-3); font-weight:500;">System</div>
+      <a href="{{ url_for('settings_page') }}" class="nav-link {% if request.endpoint=='settings_page' %}active{% endif %}">
+        <i class="bi bi-gear-fill"></i><span>Settings</span>
+      </a>
+      {% if _team_role == 'admin' %}
+      <a href="{{ url_for('team_page') }}" class="nav-link {% if request.endpoint=='team_page' %}active{% endif %}">
+        <i class="bi bi-people-fill"></i><span>Team</span>
+      </a>
+      {% endif %}
+
+      <hr>
+      <div style="padding:14px 12px 8px;">
+        {% if _current_user %}
+        <div style="display:flex; align-items:center; gap:11px; padding:12px; background:rgba(255,255,255,0.03); border:1px solid var(--dark-stroke-1); border-radius:var(--r-md);">
+          <div style="width:34px; height:34px; border-radius:50%; background: {{ _current_user.avatar_color or 'var(--grad-gold)' }}; display:grid; place-items:center; font-family:var(--font-display); font-weight:600; font-size:13px; color:#fff;">
+            {{ _current_user.display_name[0]|upper }}
+          </div>
+          <div style="flex:1; min-width:0;">
+            <div style="font-family:var(--font-sans); font-size:13px; color:var(--inv-0); font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ _current_user.display_name }}</div>
+            <div style="font-size:9.5px; color:var(--inv-2); font-family:var(--font-mono); letter-spacing:0.18em; text-transform:uppercase; margin-top:2px;">
+              {{ _team_role or 'Member' }}
+            </div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+      <a href="{{ url_for('logout') }}" class="nav-link" style="color:#e08c8c; font-size:12px; padding:8px 14px !important;">
+        <i class="bi bi-box-arrow-left"></i><span>Sign Out</span>
+      </a>
+
+    </nav>
+  </div>
+</aside>
+
+<!-- ═══════════════════════════════════════════ MAIN ═══════════════════════════════════════════ -->
+<div class="main-content">
+
+  <!-- Topbar -->
+  <div class="top-bar d-flex align-items-center gap-3">
+    <div class="search-wrap" style="position:relative; flex:1; max-width:440px;">
+      <form action="{{ url_for('leads_page') }}" method="GET" style="position:relative;">
+        <i class="bi bi-search"></i>
+        <input type="text" name="q"
+               placeholder="Search companies, emails, domains…"
+               value="{{ request.args.get('q', '') }}" autocomplete="off">
+        <button type="submit">⌘K</button>
+      </form>
+    </div>
+
+    <div class="ms-auto d-flex align-items-center gap-2">
+      <a href="{{ url_for('sync_page') }}" class="btn btn-outline-secondary btn-sm" style="padding:8px 11px !important;" title="Sync to CRM">
+        <i class="bi bi-arrow-repeat"></i>
+      </a>
+      <a href="{{ url_for('search_page') }}" class="btn btn-bim btn-sm">
+        <i class="bi bi-radar"></i> New Search
+      </a>
+      <div class="user-pill">
+        {% if _current_user %}
+          <div class="avatar" style="background:{{ _current_user.avatar_color }}">
+            {{ _current_user.display_name[0]|upper }}
+          </div>
+          <span>{{ _current_user.display_name }}</span>
+        {% else %}
+          <div class="avatar">A</div><span>Admin</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="main-inner">
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for cat, msg in messages %}
+          <div class="alert alert-{{ 'danger' if cat=='error' else cat }} alert-dismissible fade show rise" role="alert">
+            {{ msg | safe }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+{% if current_user.is_authenticated %}
+  {% include "chat_widget.html" %}
+{% endif %}
+{% block scripts %}{% endblock %}
+</body>
+</html>

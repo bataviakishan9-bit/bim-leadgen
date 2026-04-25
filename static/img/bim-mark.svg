@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 380" fill="none" role="img" aria-label="BIM Infra Solutions">
+  <defs>
+    <!-- Chrome / silver ribbon gradient -->
+    <linearGradient id="chrome" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#FFFFFF"/>
+      <stop offset="18%"  stop-color="#E8E8E8"/>
+      <stop offset="42%"  stop-color="#9A9A9A"/>
+      <stop offset="60%"  stop-color="#6A6A6A"/>
+      <stop offset="82%"  stop-color="#CCCCCC"/>
+      <stop offset="100%" stop-color="#F2F2F2"/>
+    </linearGradient>
+    <!-- Top-edge highlight -->
+    <linearGradient id="chromeEdge" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#FFFFFF" stop-opacity="0.95"/>
+      <stop offset="60%"  stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <!-- Underside shadow -->
+    <linearGradient id="chromeShadow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#000000" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.55"/>
+    </linearGradient>
+    <!-- Depth side of the ribbon -->
+    <linearGradient id="ribbonDepth" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="#3A3A3A"/>
+      <stop offset="50%"  stop-color="#555555"/>
+      <stop offset="100%" stop-color="#2A2A2A"/>
+    </linearGradient>
+  </defs>
+
+  <!-- ─────────────────────── VERTICAL STEM (the 'b' riser) ─────────────────────── -->
+  <!-- Ribbon depth / back face -->
+  <path d="M78 22
+           C 88 18, 104 20, 112 30
+           L 134 58
+           L 134 232
+           C 134 250, 120 262, 102 262
+           C 84 262, 70 250, 70 232
+           L 70 46
+           C 70 34, 72 26, 78 22 Z"
+        fill="url(#ribbonDepth)"/>
+
+  <!-- Stem front face -->
+  <path d="M82 18
+           C 94 14, 110 16, 120 28
+           L 140 56
+           L 140 228
+           C 140 248, 124 260, 104 260
+           C 84 260, 68 248, 68 228
+           L 68 44
+           C 68 30, 72 22, 82 18 Z"
+        fill="url(#chrome)"/>
+
+  <!-- Stem top highlight -->
+  <path d="M84 22
+           C 96 18, 112 20, 122 32
+           L 140 56
+           L 140 80
+           L 76 80
+           L 76 44
+           C 76 32, 80 24, 84 22 Z"
+        fill="url(#chromeEdge)" opacity="0.55"/>
+
+  <!-- Stem bottom shadow -->
+  <path d="M68 200 L 140 200 L 140 228
+           C 140 248, 124 260, 104 260
+           C 84 260, 68 248, 68 228 Z"
+        fill="url(#chromeShadow)" opacity="0.45"/>
+
+  <!-- ─────────────────────── LOWER LOOP (Möbius ribbon) ─────────────────────── -->
+  <!-- Back / depth of the loop -->
+  <path d="M104 218
+           C 170 218, 230 220, 286 240
+           C 330 256, 352 282, 346 312
+           C 338 344, 298 354, 254 346
+           C 210 338, 170 316, 140 290
+           C 116 270, 104 248, 104 230 Z"
+        fill="url(#ribbonDepth)" opacity="0.75"/>
+
+  <!-- Main loop ribbon front -->
+  <path d="M108 214
+           C 178 214, 240 218, 292 236
+           C 334 250, 354 274, 350 302
+           C 344 334, 304 348, 258 342
+           C 204 334, 160 312, 130 286
+           C 110 268, 104 250, 106 232
+           C 106 224, 106 218, 108 214 Z"
+        fill="url(#chrome)"/>
+
+  <!-- Loop twist / Möbius highlight -->
+  <path d="M140 220
+           C 200 216, 260 224, 300 244
+           C 330 258, 344 278, 338 296
+           C 328 320, 288 326, 244 318
+           C 200 308, 166 290, 144 268"
+        stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"
+        opacity="0.35" fill="none"/>
+
+  <!-- Loop inner shadow (under-ribbon tone) -->
+  <path d="M150 248
+           C 200 258, 258 268, 298 280
+           C 320 288, 332 298, 330 308
+           C 326 320, 300 324, 268 320
+           C 230 316, 190 302, 160 286 Z"
+        fill="url(#chromeShadow)" opacity="0.40"/>
+
+  <!-- Crossover dark notch where ribbon twists back on itself -->
+  <path d="M128 232
+           C 136 226, 150 224, 162 228
+           L 162 246
+           C 146 248, 132 246, 124 240 Z"
+        fill="#1A1A1A" opacity="0.55"/>
+
+  <!-- Subtle outer edge highlight on the loop top -->
+  <path d="M112 222
+           C 180 218, 246 224, 296 240
+           C 322 250, 340 264, 344 280"
+        stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round"
+        opacity="0.55" fill="none"/>
+
+</svg>

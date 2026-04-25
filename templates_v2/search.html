@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+{% block title %}New Search · BIM LeadGen{% endblock %}
+{% block head_extra %}
+<style>
+  .source-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
+  .source-chip {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 14px;
+    background: var(--bg-2);
+    border: 1px solid var(--stroke-1);
+    border-radius: var(--r-sm);
+    cursor: pointer;
+    transition: all var(--dur) var(--ease);
+    position: relative;
+  }
+  .source-chip input { accent-color: var(--gold); }
+  .source-chip:hover { border-color: var(--stroke-gold); background: var(--bg-3); }
+  .source-chip.disabled { opacity: 0.45; cursor: not-allowed; }
+  .source-chip input:checked ~ .source-label { color: var(--ink-0); font-weight: 600; }
+  .source-chip:has(input:checked) { border-color: var(--stroke-gold); background: rgba(232,184,76,0.05); }
+  .source-label { font-size: 13px; color: var(--ink-2); transition: color var(--dur); }
+  .source-meta  { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-3); margin-top: 2px; }
+
+  .quick-query {
+    background: var(--bg-2); border: 1px solid var(--stroke-1);
+    color: var(--ink-2); border-radius: 99px;
+    padding: 5px 12px; font-size: 11.5px;
+    cursor: pointer; transition: all var(--dur) var(--ease);
+  }
+  .quick-query:hover { border-color: var(--stroke-gold); color: var(--gold); background: var(--bg-3); }
+  .tip-item { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; }
+  .tip-item i { color: var(--gold); margin-top: 2px; font-size: 13px; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header rise">
+  <div>
+    <div class="eyebrow">Discovery · Query Builder</div>
+    <h1 class="bim-h1" style="margin-top:6px;">New Search</h1>
+    <p class="text-ink-3 mono" style="font-size:11.5px; letter-spacing:0.12em; margin:4px 0 0;">
+      CONFIGURE · DEPLOY · SCORE
+    </p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('jobs_page') }}" class="btn btn-outline-secondary"><i class="bi bi-list-task"></i> Recent Jobs</a>
+  </div>
+</div>
+
+<div class="row g-3 rise-2">
+  <!-- ═══════════════════════════ SEARCH FORM ═══════════════════════════ -->
+  <div class="col-md-7">
+    <div class="card" style="padding:0; overflow:hidden;">
+      <div style="padding:14px 20px; border-bottom:1px solid var(--stroke-1);">
+        <div class="eyebrow">Parameters</div>
+        <h6 style="margin:4px 0 0; font-family:var(--font-display); font-weight:600; color:var(--ink-0); font-size:15px;">Search Configuration</h6>
+      </div>
+
+      <form method="POST" action="{{ url_for('run_search') }}" style="padding:22px 24px;">
+
+        <!-- Query -->
+        <div class="mb-4">
+          <label class="form-label d-block" style="font-family:var(--font-mono); font-size:10.5px; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-3); margin-bottom:8px;">Search Query</label>
+          <div style="position:relative;">
+            <i class="bi bi-radar" style="position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--gold); font-size:16px;"></i>
+            <input type="text" name="query" class="form-control" style="padding-left:42px; font-size:15px; padding-top:12px; padding-bottom:12px;"
+                   placeholder="e.g. scan to bim Germany contractor"
+                   value="{{ request.form.get('query','') }}" required autofocus>
+          </div>
+          <div class="mono text-ink-3" style="font-size:10.5px; letter-spacing:0.12em; margin-top:6px;">
+            COMBINE: TECHNOLOGY + ROLE + LOCATION
+          </div>
+        </div>
+
+        <!-- Country + Max -->
+        <div class="row g-3 mb-4">
+          <div class="col-6">
+            <label class="form-label d-block" style="font-family:var(--font-mono); font-size:10.5px; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-3); margin-bottom:8px;">Country Filter</label>
+            <select name="country" class="form-select">
+              <option value="">All Countries</option>
+              <option value="Germany">Germany</option>
+              <option value="United Kingdom">United Kingdom</option>
+              <option value="Australia">Australia</option>
+              <option value="USA">USA</option>
+              <option value="Canada">Canada</option>
+              <option value="Singapore">Singapore</option>
+              <option value="India">India</option>
+              <option value="Netherlands">Netherlands</option>
+              <option value="UAE">UAE</option>
+              <option value="Switzerland">Switzerland</option>
+            </select>
+          </div>
+          <div class="col-6">
+            <label class="form-label d-block" style="font-family:var(--font-mono); font-size:10.5px; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-3); margin-bottom:8px;">Max Results</label>
+            <select name="max_results" class="form-select">
+              <option value="20">20 leads</option>
+              <option value="50" selected>50 leads</option>
+              <option value="100">100 leads</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Sources -->
+        <div class="mb-4">
+          <label class="form-label d-block" style="font-family:var(--font-mono); font-size:10.5px; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-3); margin-bottom:10px;">Data Sources</label>
+          <div class="source-grid">
+            <label class="source-chip">
+              <input type="checkbox" name="sources" value="google" checked>
+              <div><div class="source-label">Google Search</div><div class="source-meta">PRIMARY · FAST</div></div>
+            </label>
+            <label class="source-chip">
+              <input type="checkbox" name="sources" value="buildingsmart" checked>
+              <div><div class="source-label">BuildingSMART</div><div class="source-meta">DIRECTORY</div></div>
+            </label>
+            <label class="source-chip">
+              <input type="checkbox" name="sources" value="rics" checked>
+              <div><div class="source-label">RICS Firms</div><div class="source-meta">QUALIFIED</div></div>
+            </label>
+            <label class="source-chip">
+              <input type="checkbox" name="sources" value="enr">
+              <div><div class="source-label">ENR Top Firms</div><div class="source-meta">INDUSTRY RANK</div></div>
+            </label>
+            <label class="source-chip">
+              <input type="checkbox" name="sources" value="scholar">
+              <div><div class="source-label">Google Scholar</div><div class="source-meta">RESEARCH · SLOW</div></div>
+            </label>
+            <label class="source-chip {% if not linkedin_enabled %}disabled{% endif %}" title="{% if not linkedin_enabled %}Set LINKEDIN_API_KEY in Settings{% endif %}">
+              <input type="checkbox" name="sources" value="linkedin" {% if not linkedin_enabled %}disabled{% endif %}>
+              <div>
+                <div class="source-label">LinkedIn</div>
+                <div class="source-meta">{% if not linkedin_enabled %}NO API KEY{% else %}PROFILES{% endif %}</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Submit -->
+        <button type="submit" class="btn btn-bim" style="padding:12px 24px; font-size:14px;">
+          <i class="bi bi-radar"></i> Start Search
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════ SIDEBAR ═══════════════════════════ -->
+  <div class="col-md-5">
+    <!-- Quick queries -->
+    <div class="card" style="padding:0; margin-bottom:14px;">
+      <div style="padding:14px 20px; border-bottom:1px solid var(--stroke-1);">
+        <div class="eyebrow">Presets</div>
+        <h6 style="margin:4px 0 0; font-family:var(--font-display); font-weight:600; color:var(--ink-0); font-size:14px;">Quick Queries</h6>
+      </div>
+      <div style="padding:16px 20px;">
+        <div class="d-flex flex-wrap gap-2">
+          {% set suggestions = [
+            'scan to bim Germany',
+            'point cloud processing UK',
+            'drone survey AEC contractor',
+            'BIM outsourcing India',
+            'reality capture Singapore',
+            'BIM coordination company Australia',
+            'laser scanning Netherlands',
+            'as-built documentation USA',
+          ] %}
+          {% for s in suggestions %}
+            <button type="button" class="quick-query"
+                    onclick="document.querySelector('[name=query]').value='{{ s }}'; document.querySelector('[name=query]').focus();">
+              {{ s }}
+            </button>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Tips -->
+    <div class="card" style="padding:0;">
+      <div style="padding:14px 20px; border-bottom:1px solid var(--stroke-1);">
+        <div class="eyebrow">Handbook</div>
+        <h6 style="margin:4px 0 0; font-family:var(--font-display); font-weight:600; color:var(--ink-0); font-size:14px;">Search Craft</h6>
+      </div>
+      <div style="padding:10px 20px 16px;">
+        <div class="tip-item"><i class="bi bi-geo-alt-fill"></i><div style="font-size:12.5px; color:var(--ink-2);">Include location for better results (e.g. "Germany", "UK")</div></div>
+        <div class="tip-item"><i class="bi bi-tools"></i><div style="font-size:12.5px; color:var(--ink-2);">Mix technology + role (e.g. "scan to bim contractor")</div></div>
+        <div class="tip-item"><i class="bi bi-envelope-check"></i><div style="font-size:12.5px; color:var(--ink-2);">Google + Hunter.io give the best email coverage</div></div>
+        <div class="tip-item"><i class="bi bi-hourglass-split"></i><div style="font-size:12.5px; color:var(--ink-2);">Scholar is slow — enable only for academic contacts</div></div>
+        <div class="tip-item"><i class="bi bi-shield-check"></i><div style="font-size:12.5px; color:var(--ink-2);">Results auto-deduplicated by email + domain</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

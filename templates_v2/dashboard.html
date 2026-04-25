@@ -1,0 +1,259 @@
+{% extends "base.html" %}
+{% block title %}Command Center · BIM LeadGen{% endblock %}
+{% block head_extra %}
+<style>
+  .dash-hero { position: relative; overflow: hidden; }
+  .dash-hero-mark { position: absolute; right: -40px; top: -30px; width: 220px; height: 220px;
+    opacity: 0.06; pointer-events: none; z-index: 0; transform: rotate(-8deg); }
+  .dash-hero-mark img { width: 100%; height: 100%; object-fit: contain; }
+  @media (max-width: 900px) { .dash-hero-mark { display: none; } }
+
+  .mini-row { display: grid; gap: 10px; margin-top: 12px; grid-template-columns: repeat(3, 1fr); }
+  .source-dot {
+    font-family: var(--font-mono); font-size: 10px;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--ink-3); display: flex; align-items: center; gap: 6px;
+  }
+  .source-dot::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 6px var(--cyan); }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ════════════════════════════ PAGE HEADER ════════════════════════════ -->
+<div class="page-header rise dash-hero">
+  <div class="dash-hero-mark" aria-hidden="true">
+    <img src="{{ url_for('static', filename='img/bim-mark.png') }}" alt=""
+         onerror="this.onerror=null; this.src='{{ url_for('static', filename='img/bim-mark.svg') }}';">
+  </div>
+  <div style="position:relative; z-index:1;">
+    <div class="eyebrow">CRM · Discovery Engine</div>
+    <h1 class="bim-h1" style="margin-top:6px;">Command Center</h1>
+    <p class="text-ink-3 mono" style="font-size:11.5px; letter-spacing:0.12em; margin:4px 0 0;">
+      {{ stats.total }} LEADS · {{ stats.pending }} PENDING · {{ stats.jobs_running }} JOBS RUNNING
+    </p>
+  </div>
+  <div class="d-flex gap-2" style="position:relative; z-index:1;">
+    <a href="{{ url_for('sync_page') }}" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-repeat"></i> Sync to CRM
+    </a>
+    <a href="{{ url_for('search_page') }}" class="btn btn-bim">
+      <i class="bi bi-radar"></i> New Search
+    </a>
+  </div>
+</div>
+
+<!-- ════════════════════════════ KPI STRIP ════════════════════════════ -->
+<div class="row g-3 rise-2" style="margin-bottom: 18px;">
+  <div class="col-6 col-md-3">
+    <div class="kpi-card">
+      <div class="kpi-label">Total Leads</div>
+      <div class="kpi-value" style="font-size:34px;">{{ stats.total }}</div>
+      <div class="kpi-delta mono" style="font-size:10.5px; letter-spacing:0.14em; color:var(--ink-3);">ALL-TIME</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi-card" style="border-left:2px solid var(--warn);">
+      <div class="kpi-label">Pending Review</div>
+      <div class="kpi-value" style="font-size:34px; color:var(--warn);">{{ stats.pending }}</div>
+      <div class="kpi-delta mono" style="font-size:10.5px; letter-spacing:0.14em; color:var(--ink-3);">AWAITING APPROVAL</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi-card" style="border-left:2px solid var(--moss);">
+      <div class="kpi-label">Approved</div>
+      <div class="kpi-value" style="font-size:34px; color:var(--moss);">{{ stats.approved }}</div>
+      <div class="kpi-delta mono" style="font-size:10.5px; letter-spacing:0.14em; color:var(--ink-3);">READY TO SYNC</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi-card" style="border-left:2px solid var(--rose);">
+      <div class="kpi-label">Hot Leads</div>
+      <div class="kpi-value" style="font-size:34px; color:var(--rose);">{{ stats.hot }}</div>
+      <div class="kpi-delta mono" style="font-size:10.5px; letter-spacing:0.14em; color:var(--ink-3);">SCORE ≥ 85</div>
+    </div>
+  </div>
+</div>
+
+<!-- Secondary metrics strip -->
+<div class="row g-3 rise-2" style="margin-bottom: 22px;">
+  <div class="col-md-4">
+    <div class="card" style="padding:14px 18px;">
+      <div class="d-flex align-items-center justify-content-between">
+        <div>
+          <div class="eyebrow" style="color:var(--moss);">With Email</div>
+          <div style="font-family:var(--font-display); font-size:24px; font-weight:600; color:var(--ink-0); margin-top:4px;">{{ stats.with_email }}</div>
+        </div>
+        <i class="bi bi-envelope-check" style="font-size:22px; color:var(--moss);"></i>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card" style="padding:14px 18px;">
+      <div class="d-flex align-items-center justify-content-between">
+        <div>
+          <div class="eyebrow" style="color:var(--cyan);">Synced to CRM</div>
+          <div style="font-family:var(--font-display); font-size:24px; font-weight:600; color:var(--ink-0); margin-top:4px;">{{ stats.synced }}</div>
+        </div>
+        <i class="bi bi-arrow-repeat" style="font-size:22px; color:var(--cyan);"></i>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card" style="padding:14px 18px;">
+      <div class="d-flex align-items-center justify-content-between">
+        <div>
+          <div class="eyebrow" style="color:var(--warn);">Jobs Running</div>
+          <div style="font-family:var(--font-display); font-size:24px; font-weight:600; color:var(--ink-0); margin-top:4px;">{{ stats.jobs_running }}</div>
+        </div>
+        <i class="bi bi-broadcast-pin" style="font-size:22px; color:var(--warn); {% if stats.jobs_running > 0 %}animation: pulse 1.8s ease-in-out infinite;{% endif %}"></i>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════ DATA SECTIONS ════════════════════════════ -->
+<div class="row g-3 rise-3">
+  <!-- Recent jobs -->
+  <div class="col-md-6">
+    <div class="card" style="padding:0; overflow:hidden;">
+      <div style="padding:14px 18px; border-bottom:1px solid var(--stroke-1); display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <div class="eyebrow">Discovery Feed</div>
+          <h6 style="margin:4px 0 0; font-family:var(--font-display); font-weight:600; color:var(--ink-0); font-size:15px;">Recent Search Jobs</h6>
+        </div>
+        <a href="{{ url_for('jobs_page') }}" class="mono" style="font-size:10.5px; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-2); text-decoration:none;">View all →</a>
+      </div>
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            <th style="padding-left:18px !important;">Query</th>
+            <th>Status</th>
+            <th>Leads</th>
+            <th style="padding-right:18px !important;">Started</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for job in recent_jobs %}
+          <tr>
+            <td style="padding-left:18px !important; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="{{ job.query }}">
+              <a href="{{ url_for('job_detail', job_id=job.id) }}" style="color:var(--ink-0); font-weight:500; font-size:12.5px; text-decoration:none;">{{ job.query }}</a>
+            </td>
+            <td>
+              {% if job.status == 'running' %}
+                <span class="chip warn"><span class="pip"></span>RUNNING</span>
+              {% elif job.status == 'done' %}
+                <span class="chip success"><span class="pip"></span>DONE</span>
+              {% elif job.status == 'error' %}
+                <span class="chip danger"><span class="pip"></span>ERROR</span>
+              {% else %}
+                <span class="chip"><span class="pip"></span>{{ job.status|upper }}</span>
+              {% endif %}
+            </td>
+            <td class="mono" style="font-size:12px; font-weight:600; color:var(--ink-0);">{{ job.leads_found or 0 }}</td>
+            <td class="mono" style="padding-right:18px !important; font-size:10.5px; color:var(--ink-3);">{{ job.created_at[:16] if job.created_at else '—' }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="4" style="text-align:center; padding:40px 20px;">
+              <i class="bi bi-radar" style="font-size:28px; color:var(--ink-4); display:block; margin-bottom:8px;"></i>
+              <div style="color:var(--ink-2); font-size:13px;">No jobs yet</div>
+              <a href="{{ url_for('search_page') }}" class="btn btn-bim btn-sm" style="margin-top:12px;">
+                <i class="bi bi-plus-lg"></i> Start First Search
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Top leads -->
+  <div class="col-md-6">
+    <div class="card" style="padding:0; overflow:hidden;">
+      <div style="padding:14px 18px; border-bottom:1px solid var(--stroke-1); display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <div class="eyebrow">Intelligence Ranking</div>
+          <h6 style="margin:4px 0 0; font-family:var(--font-display); font-weight:600; color:var(--ink-0); font-size:15px;">Top Leads by Score</h6>
+        </div>
+        <a href="{{ url_for('leads_page') }}" class="mono" style="font-size:10.5px; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-2); text-decoration:none;">View all →</a>
+      </div>
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            <th style="padding-left:18px !important;">Company / Name</th>
+            <th>Score</th>
+            <th style="padding-right:18px !important;">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for lead in top_leads %}
+          <tr>
+            <td style="padding-left:18px !important;">
+              <a href="{{ url_for('lead_detail', lead_id=lead.id) }}" style="color:var(--ink-0); font-weight:600; font-size:12.5px; text-decoration:none;">
+                {{ lead.company or lead.name or 'Unknown' }}
+              </a>
+              {% if lead.email %}
+                <div class="mono" style="font-size:10.5px; color:var(--ink-3); margin-top:2px;">{{ lead.email }}</div>
+              {% endif %}
+            </td>
+            <td>
+              {% set sc = lead.score or 0 %}
+              <span class="chip {% if sc>=85 %}danger{% elif sc>=70 %}warn{% elif sc>=55 %}gold{% else %}cyan{% endif %}">
+                <span class="pip"></span>{{ sc }}
+              </span>
+            </td>
+            <td style="padding-right:18px !important;">
+              {% if lead.review_status == 'approved' %}
+                <span class="chip success"><span class="pip"></span>APPROVED</span>
+              {% elif lead.review_status == 'rejected' %}
+                <span class="chip danger"><span class="pip"></span>REJECTED</span>
+              {% else %}
+                <span class="chip"><span class="pip"></span>PENDING</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="3" style="text-align:center; padding:40px 20px; color:var(--ink-2); font-size:13px;">
+              <i class="bi bi-people" style="font-size:28px; color:var(--ink-4); display:block; margin-bottom:8px;"></i>
+              No leads yet
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════ DATA SOURCES STRIP ════════════════════════════ -->
+<div class="card rise-3" style="padding:16px 22px; margin-top:18px;">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+    <div>
+      <div class="eyebrow">Active Sources · 6</div>
+      <div style="font-family:var(--font-display); font-size:14px; color:var(--ink-1); margin-top:4px;">
+        Google · Hunter.io · BuildingSMART · ENR · RICS · Scholar
+      </div>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{{ url_for('settings_page') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-gear"></i> Configure</a>
+      <a href="{{ url_for('search_page') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-radar"></i> Query</a>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+{% if stats.jobs_running and stats.jobs_running > 0 %}
+<script>
+  // Auto-refresh while jobs are running
+  setTimeout(() => location.reload(), 10000);
+</script>
+{% endif %}
+<style>
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+</style>
+{% endblock %}

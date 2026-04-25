@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+{% block title %}Lead #{{ lead.id }} · BIM LeadGen{% endblock %}
+{% block content %}
+
+{% set sc = lead.score or 0 %}
+{% set sc_cls = 'danger' if sc>=85 else 'warn' if sc>=70 else 'gold' if sc>=55 else 'cyan' %}
+{% set sc_color = 'var(--rose)' if sc>=85 else 'var(--amber)' if sc>=70 else 'var(--gold)' if sc>=55 else 'var(--cyan)' %}
+
+<!-- ═══════════════════════════ HEADER ═══════════════════════════ -->
+<div class="page-header rise" style="align-items:flex-start;">
+  <div style="flex:1; min-width:0;">
+    <div class="d-flex align-items-center gap-2" style="margin-bottom:4px;">
+      <a href="{{ url_for('leads_page') }}" class="mono" style="font-size:11px; letter-spacing:0.14em; color:var(--ink-3); text-decoration:none;">
+        ← LEADS
+      </a>
+    </div>
+    <h1 class="bim-h1" style="margin-top:4px; font-size:clamp(28px, 4vw, 38px);">
+      {{ lead.company or lead.name or 'Unknown Lead' }}
+    </h1>
+    <p class="text-ink-3 mono" style="font-size:11.5px; letter-spacing:0.12em; margin:4px 0 0;">
+      LEAD #{{ lead.id }} · {{ (lead.source or '')|upper }} · {{ lead.created_at[:10] if lead.created_at else '—' }}
+    </p>
+  </div>
+
+  <!-- Score orb -->
+  <div style="flex-shrink:0; text-align:center; padding:14px 22px; background:var(--bg-2); border:1px solid var(--stroke-1); border-radius:var(--r-md); min-width:110px;">
+    <div style="font-family:var(--font-display); font-size:42px; font-weight:700; color:{{ sc_color }}; line-height:1;">{{ sc }}</div>
+    <div class="mono" style="font-size:10px; letter-spacing:0.2em; color:var(--ink-3); margin-top:4px;">SCORE</div>
+  </div>
+</div>
+
+<div class="row g-3 rise-2">
+  <!-- ═══════════════════════════ LEFT · CONTACT + SCORE ═══════════════════════════ -->
+  <div class="col-md-5">
+    <!-- Contact info -->
+    <div class="card" style="padding:0; overflow:hidden; margin-bottom:14px;">
+      <div style="padding:14px 20px; border-bottom:1px solid var(--stroke-1);">
+        <div class="eyebrow">Dossier</div>
+        <h6 style="margin:4px 0 0; font-family:var(--font-display); font-weight:600; color:var(--ink-0); font-size:14px;">Contact Info</h6>
+      </div>
+      <div style="padding:6px 20px 14px;">
+        {% set rows = [
+          ('Name',     lead.name),
+          ('Title',    lead.title),
+          ('Company',  lead.company),
+          ('Phone',    lead.phone),
+          ('Country',  lead.country),
+        ] %}
+        {% for label, val in rows %}
+        <div class="d-flex justify-content-between align-items-start" style="padding:9px 0; border-bottom:1px dashed var(--stroke-1); gap:12px;">
+          <span class="mono text-ink-3" style="font-size:10.5px; letter-spacing:0.16em; text-transform:uppercase; flex-shrink:0;">{{ label }}</span>
+          <span style="font-size:13px; color:var(--ink-1); text-align:right; word-break:break-word;">{{ val or '—' }}</span>
+        </div>
+        {% endfor %}
+
+        <!-- Email row -->
+        <div class="d-flex justify-content-between align-items-start" style="padding:9px 0; border-bottom:1px dashed var(--stroke-1); gap:12px;">
+          <span class="mono text-ink-3" style="font-size:10.5px; letter-spacing:0.16em; text-transform:uppercase; flex-shrink:0;">Email</span>
+          <div style="text-align:right; word-break:break-all;">
+            {% if lead.email %}
+              <a href="mailto:{{ lead.email }}" class="mono" style="font-size:12px; color:var(--gold); text-decoration:none;">{{ lead.email }}</a>
+              {% if lead.email_verified %}
+                <div style="margin-top:3px;"><span class="chip success"><span class="pip"></span>VERIFIED</span></div>
+              {% endif %}
+              {% if lead.email_type %}
+                <div style="margin-top:3px;"><span class="chip"><span class="pip"></span>{{ lead.email_type|upper }}</span></div>
+              {% endif %}
+            {% else %}<span class="text-ink-4">—</span>{% endif %}
+          </div>
+        </div>
+
+        <!-- Website -->
+        <div class="d-flex justify-content-between align-items-start" style="padding:9px 0; border-bottom:1px dashed var(--stroke-1); gap:12px;">
+          <span class="mono text-ink-3" style="font-size:10.5px; letter-spacing:0.16em; text-transform:uppercase; flex-shrink:0;">Website</span>
+          <div style="text-align:right; word-break:break-all;">
+            {% if lead.website %}
+              <a href="{{ lead.website }}" target="_blank" class="mono" style="font-size:11.5px; color:var(--gold); text-decoration:none;">{{ lead.website }} ↗</a>
+            {% else %}<span class="text-ink-4">—</span>{% endif %}
+          </div>
+        </div>
+
+        <!-- LinkedIn -->
+        <div class="d-flex justify-content-between align-items-start" style="padding:9px 0; border-bottom:1px dashed var(--stroke-1); gap:12px;">
+          <span class="mono text-ink-3" style="font-size:10.5px; letter-spacing:0.16em; text-transform:uppercase; flex-shrink:0;">LinkedIn</span>
+          <div style="text-align:right;">
+            {% if lead.linkedin_url %}
+              <a href="{{ lead.linkedin_url }}" target="_blank" style="font-size:12px; color:#22A6F2; text-decoration:none;">
+                <i class="bi bi-linkedin"></i> Profile ↗
+              </a>
+            {% else %}<span class="text-ink-4">—</span>{% endif %}
+          </div>
+        </div>
+
+        <!-- Source -->
+        <div class="d-flex justify-content-between align-items-start" style="padding:9px 0; {% if lead.source_url or lead.search_query %}border-bottom:1px dashed var(--stroke-1);{% endif %} gap:12px;">
+          <span class="mono text-ink-3" style="font-size:10.5px; letter-spacing:0.16em; text-transform:uppercase; flex-shrink:0;">Source</span>
+          <span class="chip"><span class="pip"></span>{{ (lead.source or '')|upper }}</span>
+        </div>
+
+        {% if lead.source_url %}
+        <div class="d-flex justify-content-between align-items-start" style="padding:9px 0; {% if lead.search_query %}border-bottom:1px dashed var(--stroke-1);{% endif %} gap:12px;">
+          <span class="mono text-ink-3" style="font-size:10.5px; letter-spacing:0.16em; text-transform:uppercase; flex-shrink:0;">Source URL</span>
+          <a href="{{ lead.source_url }}" target="_blank" class="mono" style="font-size:10.5px; color:var(--ink-3); text-decoration:none; text-align:right; word-break:break-all;">
+            {{ lead.source_url[:50] }}…
+          </a>
+        </div>
+        {% endif %}
+
+        {% if lead.search_query %}
+        <div class="d-flex justify-content-between align-items-start" style="padding:9px 0; gap:12px;">
+          <span class="mono text-ink-3" style="font-size:10.5px; letter-spacing:0.16em; text-transform:uppercase; flex-shrink:0;">Query</span>
+          <span class="mono" style="font-size:11px; color:var(--ink-3); text-align:right;">{{ lead.search_query }}</span>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Score breakdown -->
+    {% if score_breakdown %}
+    <div class="card" style="padding:0; overflow:hidden;">
+      <div style="padding:14px 20px; border-bottom:1px solid var(--stroke-1);">
+        <div class="eyebrow">Scoring</div>
+        <h6 style="margin:4px 0 0; font-family:var(--font-display); font-weight:600; color:var(--ink-0); font-size:14px;">Score Breakdown</h6>
+      </div>
+      <div style="padding:12px 20px 14px; font-size:12px;">
+        {% if score_breakdown.hits %}
+          {% for h in score_breakdown.hits %}
+          <div class="d-flex justify-content-between align-items-center" style="padding:5px 0;">
+            <span style="color:var(--ink-2);">{{ h.kw }}</span>
+            <span class="mono" style="color:var(--moss); font-weight:600;">+{{ h.pts }}</span>
+          </div>
+          {% endfor %}
+        {% endif %}
+        {% if score_breakdown.bonuses %}
+          {% for b in score_breakdown.bonuses %}
+          <div class="d-flex justify-content-between align-items-center" style="padding:5px 0;">
+            <span style="color:var(--ink-2);">{{ b.reason }}</span>
+            <span class="mono" style="color:var(--moss); font-weight:600;">+{{ b.pts }}</span>
+          </div>
+          {% endfor %}
+        {% endif %}
+        {% if score_breakdown.penalties %}
+          {% for p in score_breakdown.penalties %}
+          <div class="d-flex justify-content-between align-items-center" style="padding:5px 0;">
+            <span style="color:var(--ink-2);">{{ p.reason }}</span>
+            <span class="mono" style="color:var(--rose); font-weight:600;">{{ p.pts }}</span>
+          </div>
+          {% endfor %}
+        {% endif %}
+        {% for key in ['kw_total','country_bonus','combo_total','contact_bonus'] %}
+          {% if score_breakdown[key] is defined and score_breakdown[key] != 0 %}
+          <div class="d-flex justify-content-between align-items-center" style="padding:5px 0;">
+            <span style="color:var(--ink-2);">{{ key.replace('_',' ').title() }}</span>
+            {% set v = score_breakdown[key] %}
+            <span class="mono" style="color:{% if v > 0 %}var(--moss){% else %}var(--rose){% endif %}; font-weight:600;">
+              {% if v > 0 %}+{% endif %}{{ v }}
+            </span>
+          </div>
+          {% endif %}
+        {% endfor %}
+
+        <div style="border-top:1px solid var(--stroke-1); margin-top:10px; padding-top:10px;">
+          <div class="d-flex justify-content-between align-items-center">
+            <span class="mono" style="font-size:10.5px; letter-spacing:0.16em; text-transform:uppercase; color:var(--ink-3);">Total</span>
+            <span class="chip {{ sc_cls }}" style="font-size:12px; padding:3px 12px;"><span class="pip"></span>{{ sc }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- ═══════════════════════════ RIGHT · ACTIONS + NOTES ═══════════════════════════ -->
+  <div class="col-md-7">
+    <!-- Review -->
+    <div class="card" style="padding:0; overflow:hidden; margin-bottom:14px;">
+      <div style="padding:14px 20px; border-bottom:1px solid var(--stroke-1); display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <div class="eyebrow">Workflow</div>
+          <h6 style="margin:4px 0 0; font-family:var(--font-display); font-weight:600; color:var(--ink-0); font-size:14px;">Review</h6>
+        </div>
+        {% if lead.review_status == 'approved' %}
+          <span class="chip success"><span class="pip"></span>APPROVED</span>
+        {% elif lead.review_status == 'rejected' %}
+          <span class="chip danger"><span class="pip"></span>REJECTED</span>
+        {% else %}
+          <span class="chip"><span class="pip"></span>PENDING</span>
+        {% endif %}
+      </div>
+      <div style="padding:18px 22px;">
+        <div class="d-flex gap-2 flex-wrap">
+          <form method="POST" action="{{ url_for('lead_detail', lead_id=lead.id) }}">
+            <input type="hidden" name="action" value="approve">
+            <button class="btn btn-sm" style="background:rgba(132,204,22,0.15); border:1px solid rgba(132,204,22,0.4); color:var(--moss); padding:8px 16px;" {% if lead.review_status=='approved' %}disabled{% endif %}>
+              <i class="bi bi-check-lg"></i> Approve
+            </button>
+          </form>
+          <form method="POST" action="{{ url_for('lead_detail', lead_id=lead.id) }}">
+            <input type="hidden" name="action" value="reject">
+            <button class="btn btn-sm" style="background:rgba(244,63,94,0.15); border:1px solid rgba(244,63,94,0.4); color:var(--rose); padding:8px 16px;" {% if lead.review_status=='rejected' %}disabled{% endif %}>
+              <i class="bi bi-x-lg"></i> Reject
+            </button>
+          </form>
+          <form method="POST" action="{{ url_for('lead_detail', lead_id=lead.id) }}">
+            <input type="hidden" name="action" value="enrich">
+            <button class="btn btn-sm btn-outline-secondary" style="padding:8px 16px;">
+              <i class="bi bi-arrow-clockwise"></i> Enrich Email
+            </button>
+          </form>
+          {% if lead.review_status == 'approved' and not lead.synced_to_crm %}
+          <form method="POST" action="{{ url_for('lead_detail', lead_id=lead.id) }}">
+            <input type="hidden" name="action" value="sync">
+            <button class="btn btn-sm btn-bim" style="padding:8px 16px;">
+              <i class="bi bi-arrow-repeat"></i> Sync to CRM
+            </button>
+          </form>
+          {% endif %}
+          {% if lead.synced_to_crm %}
+            <span class="chip success align-self-center"><span class="pip"></span>SYNCED TO CRM ✓</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Notes -->
+    <div class="card" style="padding:0; overflow:hidden; margin-bottom:14px;">
+      <div style="padding:14px 20px; border-bottom:1px solid var(--stroke-1);">
+        <div class="eyebrow">Journal</div>
+        <h6 style="margin:4px 0 0; font-family:var(--font-display); font-weight:600; color:var(--ink-0); font-size:14px;">Notes</h6>
+      </div>
+      <div style="padding:18px 22px;">
+        <form method="POST" action="{{ url_for('lead_detail', lead_id=lead.id) }}">
+          <input type="hidden" name="action" value="notes">
+          <textarea name="notes" class="form-control" rows="5" placeholder="Add notes about this lead…" style="margin-bottom:10px; font-family:var(--font-sans); font-size:13px;">{{ lead.notes or '' }}</textarea>
+          <button type="submit" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-save"></i> Save Notes
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Raw data -->
+    {% if lead.raw_data %}
+    <div class="card" style="padding:0; overflow:hidden;">
+      <div style="padding:14px 20px; border-bottom:1px solid var(--stroke-1);">
+        <div class="eyebrow">Debug</div>
+        <h6 style="margin:4px 0 0; font-family:var(--font-display); font-weight:600; color:var(--ink-0); font-size:14px;">Raw Data</h6>
+      </div>
+      <div style="padding:16px 22px;">
+        <pre class="mono" style="font-size:10.5px; color:var(--ink-3); white-space:pre-wrap; word-break:break-all; max-height:220px; overflow-y:auto; margin:0; background:var(--bg-2); border:1px solid var(--stroke-1); border-radius:var(--r-sm); padding:12px;">{{ lead.raw_data }}</pre>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

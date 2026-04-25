@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block title %}Job #{{ job.id }} · BIM LeadGen{% endblock %}
+{% block content %}
+
+<!-- ═══════════════════════════ HEADER ═══════════════════════════ -->
+<div class="page-header rise" style="align-items:flex-start;">
+  <div style="flex:1; min-width:0;">
+    <div class="d-flex align-items-center gap-2" style="margin-bottom:4px;">
+      <a href="{{ url_for('jobs_page') }}" class="mono" style="font-size:11px; letter-spacing:0.14em; color:var(--ink-3); text-decoration:none;">
+        ← JOBS
+      </a>
+    </div>
+    <div class="eyebrow">Discovery · Run</div>
+    <h1 class="bim-h1" style="margin-top:6px; font-size:clamp(26px, 4vw, 36px);">Search Job #{{ job.id }}</h1>
+    <p class="text-ink-3" style="font-size:13.5px; margin:6px 0 0; max-width:720px;">{{ job.query }}</p>
+  </div>
+
+  <!-- Status badge -->
+  <div style="flex-shrink:0;">
+    {% if job.status == 'running' %}
+      <span class="chip warn" style="padding:6px 14px; font-size:12px;"><span class="pip" style="animation: pulse 1.4s infinite;"></span>RUNNING</span>
+    {% elif job.status == 'done' %}
+      <span class="chip success" style="padding:6px 14px; font-size:12px;"><span class="pip"></span>COMPLETED</span>
+    {% elif job.status == 'error' %}
+      <span class="chip danger" style="padding:6px 14px; font-size:12px;"><span class="pip"></span>ERROR</span>
+    {% else %}
+      <span class="chip" style="padding:6px 14px; font-size:12px;"><span class="pip"></span>{{ job.status|upper }}</span>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ═══════════════════════════ JOB INFO ═══════════════════════════ -->
+<div class="row g-3 rise-2" style="margin-bottom:14px;">
+  <div class="col-md-8">
+    <div class="card" style="padding:0; overflow:hidden;">
+      <div style="padding:14px 20px; border-bottom:1px solid var(--stroke-1);">
+        <div class="eyebrow">Parameters</div>
+        <h6 style="margin:4px 0 0; font-family:var(--font-display); font-weight:600; color:var(--ink-0); font-size:14px;">Run Details</h6>
+      </div>
+      <div style="padding:14px 20px;">
+        {% set rows = [
+          ('Query',          job.query),
+          ('Sources',        job.sources or 'google'),
+          ('Country Filter', job.country or 'All'),
+          ('Started',        job.created_at[:19] if job.created_at else '—'),
+          ('Finished',       job.finished_at[:19] if job.finished_at else '—'),
+        ] %}
+        {% for label, val in rows %}
+        <div class="d-flex justify-content-between align-items-center" style="padding:8px 0; {% if not loop.last %}border-bottom:1px dashed var(--stroke-1);{% endif %} gap:12px;">
+          <span class="mono text-ink-3" style="font-size:10.5px; letter-spacing:0.16em; text-transform:uppercase; flex-shrink:0;">{{ label }}</span>
+          <span class="mono" style="font-size:12px; color:var(--ink-1); text-align:right; word-break:break-word;">{{ val }}</span>
+        </div>
+        {% endfor %}
+
+        {% if job.error_msg %}
+        <div class="alert alert-danger" style="margin:14px 0 0; font-size:12.5px;">
+          <i class="bi bi-exclamation-triangle-fill"></i> {{ job.error_msg }}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Leads found stat -->
+  <div class="col-md-4">
+    <div class="card h-100" style="padding:28px 22px; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center;">
+      <div class="eyebrow" style="margin-bottom:8px;">Output</div>
+      <div style="font-family:var(--font-display); font-size:64px; font-weight:700; color:var(--gold); line-height:1;">{{ job.leads_found or 0 }}</div>
+      <div class="mono" style="font-size:10.5px; letter-spacing:0.2em; color:var(--ink-3); margin-top:8px; text-transform:uppercase;">Leads Generated</div>
+      {% if job.leads_found %}
+        <a href="{{ url_for('leads_page', job_id=job.id) }}" class="btn btn-bim btn-sm" style="margin-top:16px; padding:8px 18px;">
+          <i class="bi bi-people"></i> View Leads
+        </a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════ LEADS TABLE ═══════════════════════════ -->
+{% if leads %}
+<div class="card rise-3" style="padding:0; overflow:hidden;">
+  <div style="padding:14px 20px; border-bottom:1px solid var(--stroke-1); display:flex; justify-content:space-between; align-items:center;">
+    <div>
+      <div class="eyebrow">Harvest</div>
+      <h6 style="margin:4px 0 0; font-family:var(--font-display); font-weight:600; color:var(--ink-0); font-size:14px;">Leads from this job ({{ leads|length }})</h6>
+    </div>
+    <a href="{{ url_for('leads_page', job_id=job.id) }}" class="mono" style="font-size:11px; letter-spacing:0.14em; color:var(--gold); text-decoration:none;">FULL VIEW →</a>
+  </div>
+
+  <table class="table table-hover mb-0">
+    <thead>
+      <tr>
+        <th style="padding-left:18px !important;">Company</th>
+        <th>Name</th>
+        <th>Email</th>
+        <th>Source</th>
+        <th>Score</th>
+        <th>Review</th>
+        <th style="text-align:right; padding-right:18px !important;"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for lead in leads[:50] %}
+      <tr>
+        <td style="padding-left:18px !important; font-weight:600; color:var(--ink-0); font-size:12.5px; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="{{ lead.company }}">
+          {{ lead.company or '—' }}
+        </td>
+        <td style="font-size:12.5px; color:var(--ink-1);">{{ lead.name or '—' }}</td>
+        <td class="mono" style="font-size:11px; color:var(--ink-3);">{{ lead.email or '—' }}</td>
+        <td><span class="chip"><span class="pip"></span>{{ (lead.source or '')|upper }}</span></td>
+        <td>
+          {% set s = lead.score or 0 %}
+          <span class="chip {% if s>=85 %}danger{% elif s>=70 %}warn{% elif s>=55 %}gold{% else %}cyan{% endif %}">
+            <span class="pip"></span>{{ s }}
+          </span>
+        </td>
+        <td>
+          {% if lead.review_status == 'approved' %}
+            <span class="chip success"><span class="pip"></span>APPROVED</span>
+          {% elif lead.review_status == 'rejected' %}
+            <span class="chip danger"><span class="pip"></span>REJECTED</span>
+          {% else %}
+            <span class="chip"><span class="pip"></span>PENDING</span>
+          {% endif %}
+        </td>
+        <td style="text-align:right; padding-right:18px !important;">
+          <a href="{{ url_for('lead_detail', lead_id=lead.id) }}" class="btn btn-outline-primary btn-sm">View</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<style>
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+</style>
+{% endblock %}
+
+{% block scripts %}
+{% if job.status == 'running' %}
+<script>setTimeout(() => location.reload(), 5000);</script>
+{% endif %}
+{% endblock %}

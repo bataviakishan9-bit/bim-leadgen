@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block title %}Settings · BIM LeadGen{% endblock %}
+{% block content %}
+
+<div class="page-header rise">
+  <div>
+    <div class="eyebrow">System · Configuration</div>
+    <h1 class="bim-h1" style="margin-top:6px;">Settings</h1>
+    <p class="text-ink-3 mono" style="font-size:11.5px; letter-spacing:0.12em; margin:4px 0 0;">
+      API KEYS · CRM BRIDGE · PLATFORM CONFIG
+    </p>
+  </div>
+</div>
+
+<div class="row g-3 rise-2">
+  <!-- ═══════════════════════════ API KEYS FORM ═══════════════════════════ -->
+  <div class="col-md-7">
+    <div class="card" style="padding:0; overflow:hidden;">
+      <div style="padding:14px 20px; border-bottom:1px solid var(--stroke-1);">
+        <div class="eyebrow">Credentials</div>
+        <h6 style="margin:4px 0 0; font-family:var(--font-display); font-weight:600; color:var(--ink-0); font-size:15px;">API Keys & Secrets</h6>
+      </div>
+
+      <form method="POST" style="padding:22px 24px;">
+        <!-- Hunter.io -->
+        <div class="mb-4">
+          <label class="d-block" style="font-family:var(--font-mono); font-size:10.5px; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-3); margin-bottom:8px;">Hunter.io API Key</label>
+          <input type="text" name="HUNTER_API_KEY" class="form-control"
+                 placeholder="Paste your Hunter.io API key"
+                 value="{{ config.get('HUNTER_API_KEY','') }}">
+          <div class="mono" style="font-size:10.5px; letter-spacing:0.08em; color:var(--ink-3); margin-top:6px;">
+            FREE · 25 SEARCHES/MONTH &nbsp;·&nbsp;
+            <a href="https://hunter.io/api-keys" target="_blank" style="color:var(--gold); text-decoration:none;">GET KEY ↗</a>
+          </div>
+        </div>
+
+        <!-- LinkedIn Client ID -->
+        <div class="mb-3">
+          <label class="d-block" style="font-family:var(--font-mono); font-size:10.5px; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-3); margin-bottom:8px;">LinkedIn Client ID</label>
+          <input type="text" name="LINKEDIN_CLIENT_ID" class="form-control"
+                 placeholder="e.g. 773o0g8qr7mdrv"
+                 value="{{ config.get('LINKEDIN_CLIENT_ID','') }}">
+        </div>
+
+        <!-- LinkedIn Secret -->
+        <div class="mb-4">
+          <label class="d-block" style="font-family:var(--font-mono); font-size:10.5px; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-3); margin-bottom:8px;">LinkedIn Client Secret</label>
+          <input type="password" name="LINKEDIN_CLIENT_SECRET" class="form-control"
+                 placeholder="LinkedIn app primary client secret"
+                 value="{{ config.get('LINKEDIN_CLIENT_SECRET','') }}">
+          <div class="mono" style="font-size:10.5px; letter-spacing:0.08em; color:var(--ink-3); margin-top:6px;">
+            FROM LINKEDIN DEVELOPER APP &nbsp;·&nbsp;
+            <a href="https://www.linkedin.com/developers/apps" target="_blank" style="color:var(--gold); text-decoration:none;">DEVELOPERS/APPS ↗</a>
+          </div>
+        </div>
+
+        <!-- CRM URL -->
+        <div class="mb-4">
+          <label class="d-block" style="font-family:var(--font-mono); font-size:10.5px; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-3); margin-bottom:8px;">CRM App URL</label>
+          <input type="text" name="CRM_URL" class="form-control"
+                 placeholder="https://bim-crm.onrender.com"
+                 value="{{ config.get('CRM_URL','') }}">
+        </div>
+
+        <!-- CRM Password -->
+        <div class="mb-4">
+          <label class="d-block" style="font-family:var(--font-mono); font-size:10.5px; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-3); margin-bottom:8px;">CRM Admin Password</label>
+          <input type="password" name="CRM_PASSWORD" class="form-control"
+                 placeholder="Your BIM CRM admin password"
+                 value="{{ config.get('CRM_PASSWORD','') }}">
+        </div>
+
+        <!-- Actions -->
+        <div class="d-flex gap-2 align-items-center flex-wrap">
+          <button type="submit" class="btn btn-bim" style="padding:11px 22px;">
+            <i class="bi bi-check2-square"></i> Save Settings
+          </button>
+          {% if config.get('LINKEDIN_CLIENT_ID') %}
+            <a href="{{ url_for('linkedin_auth') }}" class="btn" style="background:#0a66c2; color:#fff; border:1px solid #0a66c2; padding:11px 18px;">
+              <i class="bi bi-linkedin"></i> Connect LinkedIn
+            </a>
+            <span class="mono" style="font-size:10.5px; letter-spacing:0.08em; color:var(--ink-3);">ONE-TIME AUTH · OPENS BROWSER</span>
+          {% endif %}
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════ STATUS + SCORING ═══════════════════════════ -->
+  <div class="col-md-5">
+    <!-- API Status -->
+    <div class="card" style="padding:0; overflow:hidden; margin-bottom:14px;">
+      <div style="padding:14px 20px; border-bottom:1px solid var(--stroke-1);">
+        <div class="eyebrow">Diagnostics</div>
+        <h6 style="margin:4px 0 0; font-family:var(--font-display); font-weight:600; color:var(--ink-0); font-size:14px;">API Status</h6>
+      </div>
+      <div style="padding:8px 20px 14px;">
+        {% set apis = [
+          ('Hunter.io',     config.get('HUNTER_API_KEY'),    'success', 'secondary', 'CONFIGURED', 'NOT SET'),
+          ('LinkedIn',      config.get('LINKEDIN_CLIENT_ID'),'success', 'secondary', 'CONFIGURED', 'OPTIONAL'),
+          ('Google Search', True,                             'success', 'success',   'BUILT-IN',   'BUILT-IN'),
+          ('CRM Sync',      config.get('CRM_URL'),            'success', 'secondary', 'CONFIGURED', 'NOT SET'),
+        ] %}
+        {% for label, ok, ok_cls, off_cls, ok_txt, off_txt in apis %}
+        <div class="d-flex justify-content-between align-items-center" style="padding:9px 0; {% if not loop.last %}border-bottom:1px dashed var(--stroke-1);{% endif %}">
+          <span style="font-size:12.5px; color:var(--ink-1);">{{ label }}</span>
+          {% if ok %}
+            <span class="chip success"><span class="pip"></span>{{ ok_txt }}</span>
+          {% else %}
+            <span class="chip"><span class="pip"></span>{{ off_txt }}</span>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Score Tiers -->
+    <div class="card" style="padding:0; overflow:hidden;">
+      <div style="padding:14px 20px; border-bottom:1px solid var(--stroke-1);">
+        <div class="eyebrow">Lead Quality</div>
+        <h6 style="margin:4px 0 0; font-family:var(--font-display); font-weight:600; color:var(--ink-0); font-size:14px;">Score Tiers</h6>
+      </div>
+      <div style="padding:10px 20px 16px;">
+        {% set tiers = [
+          ('danger', 'Hot',    '85–100'),
+          ('warn',   'High',   '70–84'),
+          ('gold',   'Medium', '55–69'),
+          ('cyan',   'Low',    '0–54'),
+        ] %}
+        {% for cls, label, range in tiers %}
+        <div class="d-flex justify-content-between align-items-center" style="padding:7px 0; {% if not loop.last %}border-bottom:1px dashed var(--stroke-1);{% endif %}">
+          <span class="chip {{ cls }}"><span class="pip"></span>{{ label|upper }}</span>
+          <span class="mono" style="font-size:11px; color:var(--ink-3); letter-spacing:0.1em;">{{ range }} PTS</span>
+        </div>
+        {% endfor %}
+
+        <div style="margin-top:14px; padding:12px 14px; background:var(--bg-2); border:1px solid var(--stroke-1); border-radius:var(--r-sm); font-size:11.5px; color:var(--ink-2); line-height:1.85;">
+          <div class="mono" style="font-size:10px; letter-spacing:0.18em; color:var(--gold); margin-bottom:6px;">SCORE WEIGHTS</div>
+          +40 scan-to-bim · +38 point-cloud<br>
+          +35 drone survey · +18 BIM<br>
+          +12 Germany/DACH · +10 UK/AU<br>
+          +8 named email · +5 phone<br>
+          <span style="color:var(--rose);">−15 free-domain email</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

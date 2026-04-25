@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block title %}Sync to CRM · BIM LeadGen{% endblock %}
+{% block content %}
+
+<div class="page-header rise">
+  <div>
+    <div class="eyebrow">Flow · Pipeline</div>
+    <h1 class="bim-h1" style="margin-top:6px;">Sync to CRM</h1>
+    <p class="text-ink-3 mono" style="font-size:11.5px; letter-spacing:0.12em; margin:4px 0 0;">
+      PUSH APPROVED LEADS → BIM COMMAND CENTER
+    </p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('leads_page') }}" class="btn btn-outline-secondary"><i class="bi bi-people"></i> Leads</a>
+    <a href="https://bim-crm.onrender.com" target="_blank" class="btn btn-outline-secondary"><i class="bi bi-box-arrow-up-right"></i> Open CRM</a>
+  </div>
+</div>
+
+<div class="row g-3 rise-2">
+  <!-- ═══════════════════════════ SYNC CONTROL ═══════════════════════════ -->
+  <div class="col-md-7">
+    <div class="card" style="padding:0; overflow:hidden; margin-bottom:14px;">
+      <div style="padding:14px 20px; border-bottom:1px solid var(--stroke-1);">
+        <div class="eyebrow">Configuration</div>
+        <h6 style="margin:4px 0 0; font-family:var(--font-display); font-weight:600; color:var(--ink-0); font-size:15px;">Sync Settings</h6>
+      </div>
+
+      <div style="padding:20px 24px;">
+        <!-- Status rows -->
+        <div style="background:var(--bg-2); border:1px solid var(--stroke-1); border-radius:var(--r-sm); padding:14px 18px; margin-bottom:18px;">
+          <div class="d-flex justify-content-between align-items-center" style="padding:6px 0; border-bottom:1px dashed var(--stroke-1);">
+            <span class="mono text-ink-3" style="font-size:10.5px; letter-spacing:0.16em; text-transform:uppercase;">CRM URL</span>
+            <span class="mono" style="font-size:12px; color:{% if crm_url %}var(--moss){% else %}var(--rose){% endif %};">{{ crm_url or 'NOT CONFIGURED' }}</span>
+          </div>
+          <div class="d-flex justify-content-between align-items-center" style="padding:6px 0; border-bottom:1px dashed var(--stroke-1);">
+            <span class="mono text-ink-3" style="font-size:10.5px; letter-spacing:0.16em; text-transform:uppercase;">Approved · Awaiting Sync</span>
+            <span style="font-family:var(--font-display); font-size:20px; font-weight:600; color:var(--gold);">{{ pending_sync }}</span>
+          </div>
+          <div class="d-flex justify-content-between align-items-center" style="padding:6px 0;">
+            <span class="mono text-ink-3" style="font-size:10.5px; letter-spacing:0.16em; text-transform:uppercase;">Already Synced</span>
+            <span style="font-family:var(--font-display); font-size:16px; font-weight:500; color:var(--ink-1);">{{ already_synced }}</span>
+          </div>
+        </div>
+
+        {% if not crm_url %}
+          <div class="alert alert-warning" style="font-size:12.5px;">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            CRM URL not configured. Set it in <a href="{{ url_for('settings_page') }}" style="color:var(--gold);">Settings</a> first.
+          </div>
+        {% endif %}
+
+        <form method="POST" action="{{ url_for('run_sync') }}">
+          <div class="mb-3">
+            <label class="d-block" style="font-family:var(--font-mono); font-size:10.5px; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-3); margin-bottom:8px;">Sync Filter</label>
+            <select name="filter" class="form-select">
+              <option value="pending">Approved, not yet synced ({{ pending_sync }} leads)</option>
+              <option value="all">All approved leads</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-bim" {% if not crm_url %}disabled{% endif %} style="padding:11px 22px;">
+            <i class="bi bi-arrow-repeat"></i> Sync Now
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Sync log -->
+    {% if sync_log %}
+    <div class="card" style="padding:0; overflow:hidden;">
+      <div style="padding:14px 20px; border-bottom:1px solid var(--stroke-1);">
+        <div class="eyebrow">Audit Trail</div>
+        <h6 style="margin:4px 0 0; font-family:var(--font-display); font-weight:600; color:var(--ink-0); font-size:14px;">Recent Sync Log</h6>
+      </div>
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            <th style="padding-left:18px !important;">Time</th>
+            <th>Lead</th>
+            <th>Status</th>
+            <th style="padding-right:18px !important;">Message</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for entry in sync_log %}
+          <tr>
+            <td class="mono" style="padding-left:18px !important; font-size:11px; color:var(--ink-3);">{{ entry.created_at[:16] if entry.created_at else '' }}</td>
+            <td class="mono" style="font-size:12px; color:var(--ink-1);">#{{ entry.lead_id }}</td>
+            <td>
+              {% if entry.status == 'success' %}
+                <span class="chip success"><span class="pip"></span>SUCCESS</span>
+              {% else %}
+                <span class="chip danger"><span class="pip"></span>FAILED</span>
+              {% endif %}
+            </td>
+            <td style="padding-right:18px !important; font-size:11.5px; color:var(--ink-3);">{{ entry.message or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- ═══════════════════════════ HOW IT WORKS ═══════════════════════════ -->
+  <div class="col-md-5">
+    <div class="card" style="padding:0; overflow:hidden;">
+      <div style="padding:14px 20px; border-bottom:1px solid var(--stroke-1);">
+        <div class="eyebrow">Flow</div>
+        <h6 style="margin:4px 0 0; font-family:var(--font-display); font-weight:600; color:var(--ink-0); font-size:14px;">How Sync Works</h6>
+      </div>
+      <div style="padding:16px 22px;">
+        {% set steps = [
+          ('1', 'Approve leads', 'Only Approved leads are candidates for sync.'),
+          ('2', 'Post to CRM', 'Each lead is posted as a new contact to BIM CRM.'),
+          ('3', 'Field mapping', 'name, email, phone, company, title, LinkedIn, country, source, score.'),
+          ('4', 'Dedupe', 'Already-synced leads are skipped automatically.'),
+          ('5', 'Audit trail', 'Sync status is tracked per lead with full log below.'),
+        ] %}
+        {% for num, title, desc in steps %}
+        <div class="d-flex gap-3" style="padding:9px 0; {% if not loop.last %}border-bottom:1px dashed var(--stroke-1);{% endif %}">
+          <div style="flex-shrink:0; width:24px; height:24px; background:var(--gold-faint); border:1px solid var(--stroke-gold); color:var(--gold); border-radius:50%; display:grid; place-items:center; font-family:var(--font-mono); font-size:11px; font-weight:600;">{{ num }}</div>
+          <div style="flex:1;">
+            <div style="font-size:13px; font-weight:600; color:var(--ink-0); margin-bottom:2px;">{{ title }}</div>
+            <div style="font-size:11.5px; color:var(--ink-3); line-height:1.5;">{{ desc }}</div>
+          </div>
+        </div>
+        {% endfor %}
+
+        <div style="margin-top:14px; padding:12px 14px; background:var(--bg-2); border:1px solid var(--stroke-1); border-radius:var(--r-sm); font-size:12px; color:var(--ink-2);">
+          <i class="bi bi-lightbulb" style="color:var(--gold);"></i>
+          To approve in bulk, open <a href="{{ url_for('leads_page') }}" style="color:var(--gold); text-decoration:none;">Leads</a>, select rows, and click <strong style="color:var(--moss);">Approve</strong>.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
